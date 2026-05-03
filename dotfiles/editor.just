@@ -79,7 +79,7 @@ prep-nvim:
 sync-nvim:
     #!/usr/bin/env bash
     mkdir -p ~/.config/nvim
-    cp -f init.lua ~/.config/nvim/init.lua
+    cp -f dotfiles/.config/nvim/init.lua ~/.config/nvim/init.lua
 
 nvim PROJ="forest" *PARAMS="": sync-nvim
     #!/usr/bin/env bash
@@ -89,11 +89,11 @@ nvim PROJ="forest" *PARAMS="": sync-nvim
 #
 sync-plugins: stylua
     mkdir -p ~/.config/nvim/lua/plugins/
-    cp -f uts-plugins.lua ~/.config/nvim/lua/plugins/spec.lua
+    cp -f dotfiles/.config/nvim/lua/plugins/spec.lua ~/.config/nvim/lua/plugins/spec.lua
 
 # Run stylua for *.lua
 stylua:
-    stylua *.lua
+    stylua dotfiles/.config/nvim/init.lua dotfiles/.config/lvim/config.lua dotfiles/.config/nvchad/nvchad-init.lua dotfiles/.config/nvim/lua/plugins/spec.lua
 
 ## LunarVim
 
@@ -107,9 +107,9 @@ prep-lvim: prep-term prep-nvim
 
 sync-lvim: stylua sync-nvim
     mkdir -p ~/.config/lvim
-    cp -f init.lua ~/.config/lvim/nvim-init.lua
-    cp -f uts-plugins.lua ~/.config/lvim/uts-plugins.lua
-    cp -f config.lua ~/.config/lvim/config.lua
+    cp -f dotfiles/.config/nvim/init.lua ~/.config/lvim/nvim-init.lua
+    cp -f dotfiles/.config/nvim/lua/plugins/spec.lua ~/.config/lvim/uts-plugins.lua
+    cp -f dotfiles/.config/lvim/config.lua ~/.config/lvim/config.lua
 
 lvim PROJ="forest" *PARAMS="": sync-lvim
     #!/usr/bin/env bash
@@ -123,7 +123,7 @@ prep-lazyvim:
 
 sync-lazyvim: stylua sync-plugins
     mkdir -p ~/.config/lazyvim
-    cp -f init.lua ~/.config/lazyvim/lua/config/options.lua
+    cp -f dotfiles/.config/nvim/init.lua ~/.config/lazyvim/lua/config/options.lua
 
 lazyvim PROJ="forest": sync-lazyvim
     #!/usr/bin/env bash
@@ -137,8 +137,8 @@ prep-chad:
 
 sync-chad: stylua sync-plugins
     mkdir -p ~/.config/nvchad/
-    cp -f init.lua ~/.config/nvchad/nvim-init.lua
-    cp -f lazyvim-init.lua ~/.config/nvchad/nvchad-init.lua
+    cp -f dotfiles/.config/nvim/init.lua ~/.config/nvchad/nvim-init.lua
+    cp -f dotfiles/.config/nvchad/nvchad-init.lua ~/.config/nvchad/nvchad-init.lua
 
 chad PROJ="forest": sync-chad
     #!/usr/bin/env bash
