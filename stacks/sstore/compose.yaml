@@ -1,0 +1,28 @@
+services:
+  sstore:
+    image: lscr.io/linuxserver/openssh-server:latest
+    container_name: sstore
+    restart: unless-stopped
+    environment:
+      - PUID=${SSTORE_PUID:-1000}
+      - PGID=${SSTORE_PGID:-1000}
+      - TZ=${TZ:-UTC}
+      - USER_NAME=${SSTORE_USER:-kopia}
+      - PASSWORD_ACCESS=false
+      - SUDO_ACCESS=false
+      - LOG_STDOUT=true
+    ports:
+      - "${SSTORE_LISTEN_ADDR:-127.0.0.1}:${SSTORE_PORT:-2222}:2222"
+    volumes:
+      - ${STORAGE_PATH}:/storage
+      - ${SSTORE_CONFIG_PATH:-./config}:/config
+      - ./custom-cont-init.d:/custom-cont-init.d:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+      - CHOWN
+      - DAC_OVERRIDE
