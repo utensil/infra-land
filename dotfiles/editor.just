@@ -13,15 +13,13 @@ prep-hx:
     hx --grammar build
 
 prep-hx-conf:
-    just reset-hx-conf
-    mkdir -p ~/.config
-    ln -sf {{justfile_directory()}}/dotfiles/.config/helix ~/.config/helix
+    just link-conf helix
     ls -lhta ~/.config/helix
     just prep-base16-helix
     just prep-scls
 
 reset-hx-conf:
-    rm -f ~/.config/helix || true
+    rip ~/.config/helix || true
 
 reset-hx:
     brew uninstall helix || true

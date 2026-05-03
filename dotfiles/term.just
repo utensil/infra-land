@@ -147,8 +147,7 @@ keys-gt:
 
 sync-gt:
     mkdir -p ~/.config/
-    rip ~/.config/ghostty || true
-    ln -s {{justfile_directory()}}/dotfiles/.config/ghostty ~/.config/ghostty
+    just link-conf ghostty
 
 reset-gt:
     rip ~/.config/ghostty
@@ -428,7 +427,6 @@ prep-zj:
     #!/usr/bin/env bash
     which zellij || brew install zellij
     # just clone-conf zellij t3hmrman tmux-zellij-shim-config
-    rip ~/.config/zellij || true
     just link-conf zellij
     # ln -s {{justfile_directory()}}/dotfiles/.config/zellij ~/.config/zellij
     # just cp dotfiles/.config/zellij ~/.config/zellij
@@ -481,7 +479,7 @@ kill NAME:
 
 prep-tmux:
     which tmux || brew install tmux || ( grep -q "Ubuntu" /etc/os-release && just prep-sudo && sudo apt install -y tmux )
-    ln -sf {{justfile_directory()}}/dotfiles/.config/tmux ~/.config/tmux
+    just link-conf tmux
     ls -lhta ~/.config/tmux
     tmux start-server
 
