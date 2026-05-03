@@ -134,6 +134,7 @@ clone-conf CONF USER REPO:
     fi
 
 link-conf CONF:
+    rip ~/.config/{{CONF}} || true
     ln -s {{justfile_directory()}}/dotfiles/.config/{{CONF}} ~/.config/{{CONF}}
 
 # -w to open in browser
