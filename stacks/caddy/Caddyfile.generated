@@ -1,0 +1,50 @@
+archivebox.homelab.local {
+    reverse_proxy archivebox:8000
+    tls internal
+}
+
+backrest.homelab.local {
+    reverse_proxy backrest:9898
+    tls internal
+}
+
+dockge.homelab.local {
+    reverse_proxy dockge:5001
+    tls internal
+}
+
+freshrss.homelab.local {
+    reverse_proxy freshrss:80
+    tls internal
+}
+
+knot.homelab.local {
+    reverse_proxy knot:5555
+    tls internal
+}
+
+kopia.homelab.local {
+    reverse_proxy kopia:51515
+    tls internal
+}
+
+linkwarden.homelab.local {
+    reverse_proxy linkwarden:3000
+    tls internal
+}
+
+readeck.homelab.local {
+    reverse_proxy readeck:8000
+    tls internal
+}
+
+ubuntu_pro.homelab.local {
+    reverse_proxy ubuntu_pro:1445
+    tls internal
+}
+
+yacd.homelab.local {
+    reverse_proxy yacd:80
+    tls internal
+}
+
