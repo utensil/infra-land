@@ -51,7 +51,7 @@ mcp *PARAMS="":
     #!/usr/bin/env bash
     mcpm-aider {{PARAMS}}
 
-aider PROJ="infra-land" *PARAMS="": # sync-aider
+aider PROJ="forest" *PARAMS="": # sync-aider
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}} && aider {{PARAMS}}
 
@@ -73,7 +73,7 @@ prep-mp4:
 # just mp4 forest --input-dir trees --extensions .tree
 # just mp4 forest --load-existing output/dir_trees_20250606_200619.mkv
 #
-mp4 PROJ="infra-land" *PARAMS="":
+mp4 PROJ="forest" *PARAMS="":
     #!/usr/bin/env bash
     cd ~/projects/memvid
     source .venv/bin/activate
@@ -102,7 +102,7 @@ mp4 PROJ="infra-land" *PARAMS="":
 #   2. Or use `just aider ../project_name` to start aider in another directory
 # I've tested that it works with `AI!`, `AI?`, and `ai!`
 #
-aw PROJ="infra-land" *PARAMS="":
+aw PROJ="forest" *PARAMS="":
     just aider {{PROJ}} --watch-files {{PARAMS}} --read AGENT.md --edit-format diff # -v
 
 llm-proxy *PARAMS:
@@ -260,7 +260,7 @@ prep-pl:
     sd 'docker compose' 'docker-compose' start_local.sh
     ./start_local.sh
 
-pl PROJ="infra-land":
+pl PROJ="forest":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
     plandex --semi
@@ -368,7 +368,7 @@ prep-scr:
 # --chat
 # --use-aider
 #
-rd PROJ="infra-land" *PARAMS="":
+rd PROJ="forest" *PARAMS="":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
     OPENAI_API_MODEL=${OPENAI_API_MODEL:-"claude-3.5-sonnet"}
@@ -524,7 +524,7 @@ prep-ccr:
 cc-mcp-reset:
     claude mcp list|grep -v -F 'No MCP servers'|awk -F":" '{print $1}'|xargs -n 1 claude mcp remove
 
-prep-cc-mcp PROJ="infra-land":
+prep-cc-mcp PROJ="forest":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
     just cc-mcp-reset
@@ -552,7 +552,7 @@ prep-cc-cu:
 
 # just cc forest --debug
 #
-ccr PROJ="infra-land" *PARAMS="":
+ccr PROJ="forest" *PARAMS="":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
     ccr code {{PARAMS}}
@@ -560,7 +560,7 @@ ccr PROJ="infra-land" *PARAMS="":
 # When running out of premium quota
 # export ANTHROPIC_BASE_URL=http://localhost:15432 ANTHROPIC_AUTH_TOKEN=dummy ANTHROPIC_MODEL=gpt-4.1 ANTHROPIC_SMALL_FAST_MODEL=gpt-4.1 && claude
 #
-cc PROJ="infra-land" *PARAMS="":
+cc PROJ="forest" *PARAMS="":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
     export ANTHROPIC_BASE_URL=$OPENAI_API_BASE ANTHROPIC_AUTH_TOKEN=$OPENAI_API_KEY ANTHROPIC_MODEL=$OPENAI_API_MODEL ANTHROPIC_SMALL_FAST_MODEL=$OPENAI_API_MODEL_FAST && claude
@@ -645,7 +645,7 @@ prep-uz:
     echo "Login first: q login"
     echo "Then chat: q chat"
 
-init-q PROJ="infra-land":
+init-q PROJ="forest":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
     q chat --no-interactive "/context add AGENTS.md"

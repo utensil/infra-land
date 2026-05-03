@@ -99,12 +99,15 @@ prep-resolve:
 resolve:
     jj status && jj resolve --tool mergiraf
 
-git PROJ="infra-land" *PARAMS="":
+git PROJ="forest" *PARAMS="":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}} && lazygit {{PARAMS}}
 
 prep-gitu:
     which gitu || cargo install gitu --locked
+
+prep-ghui:
+    bun add -g @kitlangton/ghui
 
 # [NOTE] If modified, test with prep-gtsh
 #
@@ -139,7 +142,7 @@ link-conf CONF:
 
 # -w to open in browser
 #
-actions PROJ="infra-land" *PARAMS="":
+actions PROJ="forest" *PARAMS="":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}} && gh workflow view {{PARAMS}}
 
@@ -236,12 +239,12 @@ prep-jjui:
     mkdir -p ~/.config/jjui
     cp -f dotfiles/.config/jjui/config.toml ~/.config/jjui/config.toml
 
-init-jj PROJ="infra-land" *PARAMS="":
+init-jj PROJ="forest" *PARAMS="":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
     jj status || jj git init --colocate
 
-push PROJ="infra-land" BRANCH="main":
+push PROJ="forest" BRANCH="main":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
     just chk
