@@ -21,7 +21,7 @@ prep-alacritty:
     which alacritty || brew install --cask alacritty
     # configure alacritty
     # https://alacritty.org/config-alacritty.html
-    cp .alacritty.toml ~/.alacritty.toml
+    cp dotfiles/.alacritty.toml ~/.alacritty.toml
 
 [macos]
 prep-kitty: && sync-kitty
@@ -37,8 +37,8 @@ prep-kitty:
     # configure kitty
     # https://sw.kovidgoyal.net/kitty/conf.html
     mkdir -p ~/.config/kitty
-    cp -f kitty.conf ~/.config/kitty/kitty.conf
-    cp -f kitty_session.conf ~/.config/kitty/kitty_session.conf
+    cp -f dotfiles/.config/kitty/kitty.conf ~/.config/kitty/kitty.conf
+    cp -f dotfiles/.config/kitty/kitty_session.conf ~/.config/kitty/kitty_session.conf
     # this should make kitty reload the config
     # if env var KITTY_PID is set
     if [ -n "$KITTY_PID" ]; then
@@ -59,7 +59,7 @@ prep-wez:
 
 sync-wez:
     mkdir -p ~/.config/wezterm
-    cp -f wezterm.lua ~/.config/wezterm/wezterm.lua
+    cp -f dotfiles/.config/wezterm/wezterm.lua ~/.config/wezterm/wezterm.lua
 
 prep-sbar:
     #!/usr/bin/env bash
@@ -106,7 +106,7 @@ no-yabai:
 
 prep-amethyst:
     brew install --cask amethyst
-    cp -f .amethyst.yml ~/.amethyst.yml
+    cp -f dotfiles/.amethyst.yml ~/.amethyst.yml
 
 
 @prep-sync-dir-tools: prep-rust

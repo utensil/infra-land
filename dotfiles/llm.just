@@ -8,7 +8,7 @@ prep-aichat:
     #!/usr/bin/env bash
     which aichat || brew install aichat
     mkdir -p ~/.config/aichat
-    ./render_yaml.py dotfiles/.config/aichat/config.in.yaml ~/.config/aichat/config.yaml
+    dotfiles/bin/render_yaml.py dotfiles/.config/aichat/config.in.yaml ~/.config/aichat/config.yaml
     cat ~/.config/aichat/config.yaml|sd 'api_key:(.*)' 'api_key: <hidden>'
 
 aichat *PARAMS: sync-aichat
@@ -20,12 +20,12 @@ aichat *PARAMS: sync-aichat
 # In Helix, select some code, press `|` then type `aichat -c` optionally with extra `--prompt` as system prompt
 #
 prep-aicode:
-    sudo cp -f aicode /usr/local/bin/
+    sudo cp -f dotfiles/bin/aicode /usr/local/bin/
 
 # Render aichat config
 sync-aichat:
     #!/usr/bin/env bash
-    ./render_yaml.py dotfiles/.config/aichat/config.in.yaml ~/.config/aichat/config.yaml
+    dotfiles/bin/render_yaml.py dotfiles/.config/aichat/config.in.yaml ~/.config/aichat/config.yaml
     cat ~/.config/aichat/config.yaml|sd 'api_key:(.*)' 'api_key: <hidden>'
 
 prep-aider:
@@ -35,7 +35,7 @@ prep-aider:
     [[ -f ~/.config/claude/claude_desktop_config.json ]] || echo '{"mcpServers": {} }' > ~/.config/claude/claude_desktop_config.json
 
 sync-aider:
-    cp -f aider /usr/local/bin || sudo cp -f aider /usr/local/bin
+    cp -f dotfiles/bin/aider /usr/local/bin || sudo cp -f dotfiles/bin/aider /usr/local/bin
 
 todo:
     #!/usr/bin/env bash
@@ -112,7 +112,7 @@ llm-proxy *PARAMS:
 
 llp *PARAMS:
     #!/usr/bin/env bash
-    uvx --python 3.11 --from 'litellm[proxy]' --with opentelemetry-api --with opentelemetry-sdk --with opentelemetry-exporter-otlp --with langchain --with langchain-openai --with lunary --with openinference-instrumentation-litellm litellm {{PARAMS}} --api_base {{env('OPENAI_API_BASE')}} -m 'openai/{{env('OPENAI_API_MODEL')}}' -c litellm.yaml
+    uvx --python 3.11 --from 'litellm[proxy]' --with opentelemetry-api --with opentelemetry-sdk --with opentelemetry-exporter-otlp --with langchain --with langchain-openai --with lunary --with openinference-instrumentation-litellm litellm {{PARAMS}} --api_base {{env('OPENAI_API_BASE')}} -m 'openai/{{env('OPENAI_API_MODEL')}}' -c dotfiles/.config/litellm/litellm.yaml
 
 cpm:
     #!/usr/bin/env bash
@@ -306,7 +306,7 @@ prep-llm:
 sync-llm:
     #!/usr/bin/env bash
     dir_llm=`dirname "$(uvx llm logs path)"`
-    ./render_yaml.py dotfiles/.config/llm/extra-openai-models.yaml.in $dir_llm/extra-openai-models.yaml
+    dotfiles/bin/render_yaml.py dotfiles/.config/llm/extra-openai-models.yaml.in $dir_llm/extra-openai-models.yaml
     cat $dir_llm/extra-openai-models.yaml
     uvx llm keys set env_key --value ${OPENAI_API_KEY}
     uvx llm models default env
@@ -615,7 +615,7 @@ prep-oc:
     #!/usr/bin/env bash
     which opencode || npm install -g opencode-ai
     mkdir -p ~/.config/opencode
-    ./render_yaml.py --json dotfiles/.config/opencode/opencode.in.yaml ~/.config/opencode/opencode.json
+    dotfiles/bin/render_yaml.py --json dotfiles/.config/opencode/opencode.in.yaml ~/.config/opencode/opencode.json
     just check-oc
 
 check-oc:

@@ -88,7 +88,7 @@ prep-delta:
     # git config --global diff.colorMoved dimmed_zebra
     git config --global diff.colorMovedWs allow-indentation-change
     mkdir -p ~/.config/lazygit
-    cp -f .lazygit.yml ~/.config/lazygit/config.yml
+    cp -f dotfiles/.config/lazygit/config.yml ~/.config/lazygit/config.yml
 
 prep-resolve:
     which mergiraf || brew install mergiraf
