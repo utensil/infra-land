@@ -15,8 +15,8 @@ view URL="http://localhost:1314/":
 prep-cha:
     which cha || brew install chawan
     just prep-rdrview
-    rip ~/.config/chawan || true
-    ln -s {{justfile_directory()}}/dotfiles/.config/chawan ~/.config/chawan
+    mkdir -p ~/.config/chawan
+    cp -f dotfiles/.config/chawan/config.toml ~/.config/chawan/config.toml
 
 prep-rdrview:
     #!/usr/bin/env bash
