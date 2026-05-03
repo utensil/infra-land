@@ -180,7 +180,7 @@ prof-zsh:
     time zsh -i -c exit
 
 # Start a zsh that inherits .env
-zsh PROJ="forest":
+zsh PROJ="infra-land":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
     zsh

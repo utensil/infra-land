@@ -389,19 +389,19 @@ cs_mid := env("CS_MID", "localhost:1213")
 cs-local MID=cs_mid LOCAL="1212" TARGET="1214":
     chisel client -v http://{{MID}} {{LOCAL}}:{{TARGET}}
 
-nv-remote PROJ="forest" PORT="1214":
+nv-remote PROJ="infra-land" PORT="1214":
     just nvim {{PROJ}} --embed --listen localhost:{{PORT}}
 
-nv-local PROJ="forest" PORT="1212":
+nv-local PROJ="infra-land" PORT="1212":
     just nvim {{PROJ}} --server localhost:{{PORT}} --remote-ui
 
 # an alternative is use local on CentOS and remote on Ubuntu in docker, no chisel needed, just docekr port mapping
 #
-lv-remote PROJ="forest" HOST="0.0.0.0" PORT="1214":
+lv-remote PROJ="infra-land" HOST="0.0.0.0" PORT="1214":
     #!/usr/bin/env bash
     just lvim {{PROJ}} --embed --listen {{HOST}}:{{PORT}}
 
-lv-local PROJ="forest" HOST="localhost" PORT="1214":
+lv-local PROJ="infra-land" HOST="localhost" PORT="1214":
     #!/usr/bin/env bash
     just lvim {{PROJ}} --server {{HOST}}:{{PORT}} --remote-ui
 

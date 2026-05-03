@@ -29,7 +29,7 @@ reset-hxx:
 
 # -v enables verbose logging
 #
-hx PROJ="forest" *PARAMS="":
+hx PROJ="infra-land" *PARAMS="":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
     hx {{PARAMS}}
@@ -52,7 +52,7 @@ prep-hxx:
     ~/.cargo/bin/hx -g fetch
     ~/.cargo/bin/hx -g build
 
-hxx PROJ="forest" *PARAMS="":
+hxx PROJ="infra-land" *PARAMS="":
     #!/usr/bin/env bash
     export HELIX_RUNTIME=~/projects/helix/runtime
     cd ~/projects/{{PROJ}}
@@ -79,7 +79,7 @@ sync-nvim:
     mkdir -p ~/.config/nvim
     cp -f dotfiles/.config/nvim/init.lua ~/.config/nvim/init.lua
 
-nvim PROJ="forest" *PARAMS="": sync-nvim
+nvim PROJ="infra-land" *PARAMS="": sync-nvim
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}} && nvim {{PARAMS}}
 
@@ -109,7 +109,7 @@ sync-lvim: stylua sync-nvim
     cp -f dotfiles/.config/nvim/lua/plugins/spec.lua ~/.config/lvim/uts-plugins.lua
     cp -f dotfiles/.config/lvim/config.lua ~/.config/lvim/config.lua
 
-lvim PROJ="forest" *PARAMS="": sync-lvim
+lvim PROJ="infra-land" *PARAMS="": sync-lvim
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}} && lvim {{PARAMS}}
 
@@ -123,7 +123,7 @@ sync-lazyvim: stylua sync-plugins
     mkdir -p ~/.config/lazyvim
     cp -f dotfiles/.config/nvim/init.lua ~/.config/lazyvim/lua/config/options.lua
 
-lazyvim PROJ="forest": sync-lazyvim
+lazyvim PROJ="infra-land": sync-lazyvim
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}} && nvim --cmd 'set runtimepath+=~/.config/lazyvim/' --cmd 'lua package.path = package.path .. ";{{home_directory()}}/.config/lazyvim/lua/?.lua"' -u ~/.config/lazyvim/init.lua
 
@@ -138,7 +138,7 @@ sync-chad: stylua sync-plugins
     cp -f dotfiles/.config/nvim/init.lua ~/.config/nvchad/nvim-init.lua
     cp -f dotfiles/.config/nvchad/nvchad-init.lua ~/.config/nvchad/nvchad-init.lua
 
-chad PROJ="forest": sync-chad
+chad PROJ="infra-land": sync-chad
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}} && nvim --cmd 'set runtimepath+=~/.config/nvchad/' --cmd 'lua package.path = package.path .. ";{{home_directory()}}/.config/nvchad/lua/?.lua"' -u ~/.config/nvchad/nvchad-init.lua
 
@@ -154,7 +154,7 @@ sync-astro: stylua sync-plugins
     mkdir -p ~/.config/astro/lua/plugins
     cp -f dotfiles/.config/astro/lua/plugins/spec.lua ~/.config/astro/lua/plugins/spec.lua
 
-astro PROJ="forest": sync-astro
+astro PROJ="infra-land": sync-astro
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}} && NVIM_APPNAME=astro nvim .
 

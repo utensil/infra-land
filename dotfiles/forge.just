@@ -99,7 +99,7 @@ prep-resolve:
 resolve:
     jj status && jj resolve --tool mergiraf
 
-git PROJ="forest" *PARAMS="":
+git PROJ="infra-land" *PARAMS="":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}} && lazygit {{PARAMS}}
 
@@ -139,7 +139,7 @@ link-conf CONF:
 
 # -w to open in browser
 #
-actions PROJ="forest" *PARAMS="":
+actions PROJ="infra-land" *PARAMS="":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}} && gh workflow view {{PARAMS}}
 
@@ -236,12 +236,12 @@ prep-jjui:
     mkdir -p ~/.config/jjui
     cp -f dotfiles/.config/jjui/config.toml ~/.config/jjui/config.toml
 
-init-jj PROJ="forest" *PARAMS="":
+init-jj PROJ="infra-land" *PARAMS="":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
     jj status || jj git init --colocate
 
-push PROJ="forest" BRANCH="main":
+push PROJ="infra-land" BRANCH="main":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
     just chk
