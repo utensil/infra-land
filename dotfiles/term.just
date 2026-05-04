@@ -460,19 +460,21 @@ zj *PARAMS:
 # Will attatch to a session if running (will attach it as a new client, all clients can see and operate on the same session)
 # or killed (will resurrect it, each pane will remember the last running command and wait for confirm to run)
 #
-at NAME="mon" CWD="$HOME/projects/{{NAME}}":
+at NAME="mon" CWD="":
     #!/usr/bin/env bash
     LAYOUT=$(echo {{NAME}}|sed 's/-.*//g')
-    CWD=$(echo {{CWD}})
+    PROJ=$(echo {{NAME}}|sed 's/^[^-]*-//')
+    CWD=${CWD:-"$HOME/projects/$PROJ"}
     [ -d "$CWD" ] || CWD=.
     (zellij ls|grep {{NAME}}) && just zj a {{NAME}} || zellij --cwd "$CWD" -s {{NAME}} -n $LAYOUT || zellij --cwd "$CWD" -s {{NAME}}
 
 # destructive, for debugging layout only, comment out after debug
 #
-new-at NAME="mon" CWD="$HOME/projects/{{NAME}}":
+new-at NAME="mon" CWD="":
     #!/usr/bin/env bash
     LAYOUT=$(echo {{NAME}}|sed 's/-.*//g')
-    CWD=$(echo {{CWD}})
+    PROJ=$(echo {{NAME}}|sed 's/^[^-]*-//')
+    CWD=${CWD:-"$HOME/projects/$PROJ"}
     [ -d "$CWD" ] || CWD=.
     just zj d {{NAME}} --force ; zellij --cwd "$CWD" -s {{NAME}} -n $LAYOUT
 
