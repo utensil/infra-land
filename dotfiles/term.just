@@ -466,7 +466,7 @@ at NAME="mon" CWD="":
     PROJ=$(echo {{NAME}}|sed 's/^[^-]*-//')
     CWD=${CWD:-"$HOME/projects/$PROJ"}
     [ -d "$CWD" ] || CWD=.
-    (zellij ls|grep {{NAME}}) && just zj a {{NAME}} || zellij --cwd "$CWD" -s {{NAME}} -n $LAYOUT || zellij --cwd "$CWD" -s {{NAME}}
+    (zellij ls|grep {{NAME}}) && just zj a {{NAME}} || (cd "$CWD" && zellij -s {{NAME}} -n $LAYOUT) || (cd "$CWD" && zellij -s {{NAME}})
 
 # destructive, for debugging layout only, comment out after debug
 #
@@ -476,7 +476,7 @@ new-at NAME="mon" CWD="":
     PROJ=$(echo {{NAME}}|sed 's/^[^-]*-//')
     CWD=${CWD:-"$HOME/projects/$PROJ"}
     [ -d "$CWD" ] || CWD=.
-    just zj d {{NAME}} --force ; zellij --cwd "$CWD" -s {{NAME}} -n $LAYOUT
+    just zj d {{NAME}} --force ; (cd "$CWD" && zellij -s {{NAME}} -n $LAYOUT)
 
 kill NAME:
     #!/usr/bin/env bash
