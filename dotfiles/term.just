@@ -560,7 +560,7 @@ abduco *PARAMS:
 prep-pool:
     which shpool || cargo install shpool
 
-prep-ds:
+prep-diss:
     cargo install diss
 
 # https://github.com/sebastien/multiplex

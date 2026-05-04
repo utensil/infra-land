@@ -632,6 +632,9 @@ check-oc:
 clone-oc:
     just clone sst opencode
 
+prep-ds:
+    bun add -g deepseek-tui
+
 prep-uz:
     which uzi || go install github.com/devflowinc/uzi@latest
 
