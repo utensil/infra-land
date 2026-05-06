@@ -16,7 +16,7 @@ prep-hx-conf:
     just link-conf helix
     ls -lhta ~/.config/helix
     just prep-base16-helix
-    just prep-scls
+    # just prep-scls
 
 reset-hx-conf:
     rip ~/.config/helix || true
