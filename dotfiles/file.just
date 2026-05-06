@@ -151,5 +151,5 @@ semscan:
 # https://www.howtogeek.com/803598/app-is-damaged-and-cant-be-opened/
 #
 uq APP_PATH:
-    xattr -d com.apple.quarantine {{APP_PATH}}
+    xattr -d com.apple.quarantine "{{APP_PATH}}"
 
