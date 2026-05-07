@@ -182,11 +182,22 @@ prep-zed:
     #!/usr/bin/env bash
     [[ -f /Applications/Zed.app/Contents/MacOS/zed ]] || brew install --cask zed@preview
 
+## Obsidian and KB related
+
+prep-ob:
+    brew install --cask obsidian
+
 # ekphos is mostly compatible with Obsidian
 # https://github.com/hanebox/ekphos
 #
-prep-ob:
-    which ekphos|| cargo install ekphos
+prep-ek:
+    which ekphos || cargo install ekphos
+
+prep-leaf:
+    which leaf || (curl -fsSL https://raw.githubusercontent.com/RivoLink/leaf/main/scripts/install.sh | sh)
+
+prep-nm:
+    which notesmd-cli || brew install yakitrak/yakitrak/notesmd-cli
 
 ## LSP: programming languages
 
