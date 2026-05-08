@@ -136,9 +136,28 @@ clone-conf CONF USER REPO:
         just clone-conf {{CONF}} {{USER}} {{REPO}}
     fi
 
-link-conf CONF:
-    rip ~/.config/{{CONF}} || true
-    ln -s {{justfile_directory()}}/dotfiles/.config/{{CONF}} ~/.config/{{CONF}}
+# AGENT-NOTE: Safely symlinks a config from dotfiles. If DST is empty, target = ~/.config/CONF.
+# If target is a symlink, removes it. If it's a real file/dir, backs it up with a timestamp.
+link-conf CONF DST="":
+    #!/usr/bin/env bash
+    set -e
+    SRC="{{justfile_directory()}}/dotfiles/.config/{{CONF}}"
+    if [ -n "{{DST}}" ]; then
+        TARGET="$HOME/.config/{{DST}}"
+    else
+        TARGET="$HOME/.config/{{CONF}}"
+    fi
+    TARGET_DIR=$(dirname "$TARGET")
+    mkdir -p "$TARGET_DIR"
+    if [ -L "$TARGET" ]; then
+        rip "$TARGET"
+    elif [ -e "$TARGET" ]; then
+        TS=$(date +%Y%m%d-%H%M%S)
+        cp -R "$TARGET" "$TARGET.$TS.bak"
+        rip "$TARGET"
+        echo "Backed up existing config to $(basename "$TARGET").$TS.bak"
+    fi
+    ln -s "$SRC" "$TARGET"
 
 # -w to open in browser
 #

@@ -618,21 +618,10 @@ prep-oc:
     # dotfiles/bin/render_yaml.py --json dotfiles/.config/opencode/opencode.in.yaml ~/.config/opencode/opencode.json
     # just check-oc
 
-# AGENT-NOTE: Symlinks opencode config to DeepSeek V4 Pro with high reasoning effort.
-# Re-entry safe: backs up existing non-symlink config with a dated timestamp.
+# AGENT-NOTE: Delegates to improved link-conf which handles re-entry safely
+# (rips symlinks, backs up real files with timestamp suffix).
 prep-oc-ds4: prep-oc
-    #!/usr/bin/env bash
-    set -e
-    SRC="{{justfile_directory()}}/dotfiles/.config/opencode/opencode-ds4.json"
-    DST="$HOME/.config/opencode/opencode.json"
-    mkdir -p "$HOME/.config/opencode"
-    if [ -e "$DST" ] && [ ! -L "$DST" ]; then
-        TS=$(date +%Y%m%d-%H%M%S)
-        cp "$DST" "$DST.$TS.bak"
-        echo "Backed up existing config to opencode.json.$TS.bak"
-    fi
-    rip "$DST" || true
-    ln -s "$SRC" "$DST"
+    just link-conf opencode/opencode-ds4.json opencode/opencode.json
     echo "Configured opencode to use DeepSeek V4 Pro (reasoningEffort: high)"
 
 check-oc:
