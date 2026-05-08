@@ -626,6 +626,24 @@ prep-oc-ds4: prep-oc
     just link-conf opencode/opencode-ds4.json opencode/opencode.json
     echo "Configured opencode to use DeepSeek V4 Pro (reasoningEffort: high)"
 
+# AGENT-NOTE: Symlinks pi settings with re-entry safety (rips symlinks, backs up real files).
+prep-pi-ds4: prep-pi
+    #!/usr/bin/env bash
+    set -e
+    SRC="{{justfile_directory()}}/dotfiles/.config/pi/settings-ds4.json"
+    TARGET="$HOME/.pi/agent/settings.json"
+    mkdir -p "$(dirname "$TARGET")"
+    if [ -L "$TARGET" ]; then
+        rip "$TARGET"
+    elif [ -e "$TARGET" ]; then
+        TS=$(date +%Y%m%d-%H%M%S)
+        cp "$TARGET" "$TARGET.$TS.bak"
+        rip "$TARGET"
+        echo "Backed up existing settings to settings.json.$TS.bak"
+    fi
+    ln -s "$SRC" "$TARGET"
+    echo "Configured pi to use DeepSeek V4 Pro (thinking: high)"
+
 check-oc:
     #!/usr/bin/env bash
     set -e
