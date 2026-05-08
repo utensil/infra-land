@@ -660,6 +660,9 @@ check-oc:
 clone-oc:
     just clone sst opencode
 
+prep-at:
+    which agenttrace || (curl -sL https://raw.githubusercontent.com/luoyuctl/agenttrace/master/install.sh | sh)
+
 prep-ds:
     bun add -g deepseek-tui
 
