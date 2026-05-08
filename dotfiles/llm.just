@@ -613,7 +613,7 @@ prep-gemini:
 
 prep-oc:
     #!/usr/bin/env bash
-    which opencode || npm install -g opencode-ai
+    which opencode || bun add -g opencode-ai
     mkdir -p ~/.config/opencode
     dotfiles/bin/render_yaml.py --json dotfiles/.config/opencode/opencode.in.yaml ~/.config/opencode/opencode.json
     just check-oc
