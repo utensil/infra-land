@@ -625,6 +625,7 @@ prep-pi:
 prep-oc-ds4: prep-oc
     just link-conf opencode/opencode-ds4.json opencode/opencode.json
     echo "Configured opencode to use DeepSeek V4 Pro (reasoningEffort: high)"
+    echo "!!! Run 'opencode auth login' to authenticate !!!"
 
 # AGENT-NOTE: Symlinks pi settings with re-entry safety (rips symlinks, backs up real files).
 prep-pi-ds4: prep-pi
@@ -643,6 +644,7 @@ prep-pi-ds4: prep-pi
     fi
     ln -s "$SRC" "$TARGET"
     echo "Configured pi to use DeepSeek V4 Pro (thinking: high)"
+    echo "!!! Run 'pi' then type '/login' and select DeepSeek to authenticate !!!"
 
 check-oc:
     #!/usr/bin/env bash
