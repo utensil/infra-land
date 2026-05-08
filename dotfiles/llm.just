@@ -612,11 +612,13 @@ prep-gemini:
     bun add -g @google/gemini-cli
 
 prep-oc:
-    #!/usr/bin/env bash
-    which opencode || bun add -g opencode-ai
+    bun add -g opencode-ai
     # mkdir -p ~/.config/opencode
     # dotfiles/bin/render_yaml.py --json dotfiles/.config/opencode/opencode.in.yaml ~/.config/opencode/opencode.json
     # just check-oc
+
+prep-pi:
+    bun add -g @earendil-works/pi-coding-agent
 
 # AGENT-NOTE: Delegates to improved link-conf which handles re-entry safely
 # (rips symlinks, backs up real files with timestamp suffix).
