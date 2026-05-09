@@ -85,12 +85,6 @@ prep-lvim-in-zsh:
     #!/usr/bin/env bash
     just prep-lvim
 
-mk-rp:
-    sudo docker run -d --privileged --name rp-dev -v{{justfile_directory()}}:/root/projects/forest runpod/pytorch:2.2.1-py3.10-cuda12.1.1-devel-ubuntu22.04 bash -c 'sleep infinity'
-
-run-rp:
-    sudo docker exec -it -w /root/projects/forest rp-dev bash
-
 ## Mac Init
 
 # 1. Cmd+Space then enter Term, hit enter

@@ -273,6 +273,12 @@ prep-act-in-zsh:
     echo 'To start lvim in server mode, run: just lv-remote'
     echo 'Then from outside the container, run: just lv-local'
 
+mk-rp:
+    sudo docker run -d --privileged --name rp-dev -v{{justfile_directory()}}:/root/projects/forest runpod/pytorch:2.2.1-py3.10-cuda12.1.1-devel-ubuntu22.04 bash -c 'sleep infinity'
+
+run-rp:
+    sudo docker exec -it -w /root/projects/forest rp-dev bash
+
 ## VM
 
 prep-aria2:
@@ -425,3 +431,5 @@ scp *PARAMS:
     termscp {{PARAMS}}
 
 
+prep-crabbox:
+    brew install openclaw/tap/crabbox
