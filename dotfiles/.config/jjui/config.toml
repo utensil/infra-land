@@ -11,7 +11,7 @@
 # diff-formatter = "delta"
 
 [custom_commands]
-"delta" = { args = [
+"delta" = { key = ["d"], args = [
   "util",
   "exec",
   "--",
@@ -20,7 +20,7 @@
   """jj show -r $change_id --summary --git --color=always | delta --pager 'less -R'""",
 ], show = "interactive" }
 
-"ci" = { args = [
+"ci" = {  key = ["c"], args = [
   "util",
   "exec",
   "--",
