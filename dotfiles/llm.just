@@ -179,12 +179,17 @@ prep-p2t:
 pzh:
     uvx pdf2zh -i
 
+prep-om:
+    which ollama || brew install ollama
+
+om:
+    ollama serve
+
 DS_MODEL := "deepseek-r1:7b"
 # DS_MODEL := "deepseek-r1:14b"
 # DS_MODEL := "deepseek-r1:32b"
-
-prep-om:
-    which ollama || brew install ollama
+ds:
+    ollama run {{DS_MODEL}}
 
 prep-gom:
     which gollama || go install github.com/sammcj/gollama@HEAD
@@ -199,8 +204,6 @@ gom-link: prep-gom
 gom-reset:
     gollama -cleanup
 
-om:
-    ollama serve
 
 # https://github.com/jundot/omlx
 #
@@ -223,8 +226,6 @@ ox-vm VM:
 ox4 *ARGS:
     env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy omlx launch {{ARGS}}
 
-ds:
-    ollama run {{DS_MODEL}}
 
 # VISUAL_MODEL := "llama3.2-vision"
 # VISUAL_MODEL := "minicpm-v"
@@ -435,9 +436,9 @@ prep-odw:
 
 prep-goose:
     #!/usr/bin/env bash
-    mkdir -p ~/.config/goose
-    cp -f dotfiles/.config/goose/config.yaml ~/.config/goose/config.yaml
-    which goose || (curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh | bash)
+    # mkdir -p ~/.config/goose
+    # cp -f dotfiles/.config/goose/config.yaml ~/.config/goose/config.yaml
+    which goose || (curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash)
 
 # goose info
 # goose configure
