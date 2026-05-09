@@ -10,7 +10,9 @@ default-command = 'default'
 # editor = 'nvim'
 editor = 'hx'
 # [NOTE] prefer delta as pager
-pager = ['delta', '--pager', 'less -FRX']
+# pager = ['delta', '--pager', 'less -FRX']
+# [NOTE] trying hunk as pager
+pager = ["hunk", "pager"]
 # diff-so-fancy doesn't preserve syntax highlight
 # https://github.com/so-fancy/diff-so-fancy
 # , '--diff-so-fancy']

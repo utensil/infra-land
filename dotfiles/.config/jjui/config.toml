@@ -20,6 +20,15 @@
   """jj show -r $change_id --summary --git --color=always | delta --pager 'less -R'""",
 ], show = "interactive" }
 
+"hunk" = { key = ["h"], args = [
+  "util",
+  "exec",
+  "--",
+  "bash",
+  "-c",
+  """jj show -r $change_id --summary --git --color=always | hunk pager --pager --mode stack --wrap --hunk-headers""",
+], show = "interactive" }
+
 "ci" = {  key = ["c"], args = [
   "util",
   "exec",
