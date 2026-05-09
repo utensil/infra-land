@@ -153,3 +153,8 @@ semscan:
 uq APP_PATH:
     xattr -d com.apple.quarantine "{{APP_PATH}}"
 
+remove FILE_OR_DIR:
+    #!/usr/bin/env bash
+    TEMP_LOCATION="/tmp/$(whoami)-$(date +%s)-$(head -c 5 /dev/random|xxd -ps)"
+    mv {{FILE_OR_DIR}} $TEMP_LOCATION
+    echo "{{FILE_OR_DIR}} is temporarily moved to $TEMP_LOCATION"

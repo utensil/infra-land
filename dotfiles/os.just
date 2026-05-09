@@ -1,4 +1,4 @@
-## OS related
+## Linux Init
 
 # Copy and paste to run in zsh, because we have no just at this point
 # Next, run: just prep-term
@@ -18,6 +18,80 @@ bt-centos:
     just add-zrc 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"'
     just chsh
     just prep-term
+
+# Copy and paste to run as root, because we have no just at this point
+# Next, run: just prep-act
+#
+bt-ubuntu:
+    #!/usr/bin/env bash
+    apt update
+    apt install -y build-essential curl file git sudo neovim
+    curl https://mise.run | sh
+    eval "$(~/.local/bin/mise activate bash)"
+    mise trust
+    mise use -g just
+    echo 'eval "$(~/.local/bin/mise activate bash)"' >> ~/.bashrc
+
+bt CONTAINER_NAME:
+    echo '#!/usr/bin/env bash\napt update\napt install -y build-essential curl file git sudo neovim\ncurl https://mise.run | sh\neval "$(~/.local/bin/mise activate bash)"\nmise trust\nmise use -g just\necho 'eval \"$(~/.local/bin/mise activate bash)\"' >> ~/.bashrc' | docker exec -i {{CONTAINER_NAME}} bash -s
+
+prep-ubuntu:
+    #!/usr/bin/env bash
+    sudo apt update
+    sudo apt install -y build-essential curl file git
+    # this fix weird issue that $USER is root, no matter I use `su -` or ssh with non-root user
+    # causing: /home/linuxbrew/.linuxbrew/Homebrew/.git: Permission denied
+    export USER=`whoami`
+    sudo just remove /home/linuxbrew
+    just remove ~/.cache/Homebrew
+    yes|/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    just prep-rc
+    sudo apt install -y zsh
+
+[linux]
+prep-brew:
+    yes|/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.bashrc
+
+# Error: Your Xcode (15.4) at /Applications/Xcode.app is too outdated.
+# Please update to Xcode 16.0 (or delete it).
+# Xcode can be updated from the App Store.
+
+# Error: Your Command Line Tools are too outdated.
+# Update them from Software Update in System Settings.
+
+# If that doesn't show you any updates, run:
+#   sudo rip /Library/Developer/CommandLineTools
+#   sudo xcode-select --install
+
+# Alternatively, manually download them from:
+#   https://developer.apple.com/download/all/.
+# You should download the Command Line Tools for Xcode 16.0.
+
+# Error: You have not agreed to the Xcode license. Please resolve this by running:
+#   sudo xcodebuild -license accept
+
+prep-user USER:
+    #!/usr/bin/env bash
+    set -e
+    useradd --shell "`which bash`" {{USER}}
+    mkdir ~{{USER}}
+    chown -R {{USER}}.{{USER}} ~{{USER}}
+    passwd {{USER}}
+    echo "{{USER}} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+prep-lvim-in-zsh:
+    #!/usr/bin/env bash
+    just prep-lvim
+
+mk-rp:
+    sudo docker run -d --privileged --name rp-dev -v{{justfile_directory()}}:/root/projects/forest runpod/pytorch:2.2.1-py3.10-cuda12.1.1-devel-ubuntu22.04 bash -c 'sleep infinity'
+
+run-rp:
+    sudo docker exec -it -w /root/projects/forest rp-dev bash
+
+## Mac Init
 
 # 1. Cmd+Space then enter Term, hit enter
 # 2. Cmd++ to make the font and the terminal window bigger
@@ -60,17 +134,6 @@ init-mac:
     echo "You may set the wallpapar to Sonoma Horizon, and use it as the screensaver"
     echo "Otherwise, visit https://wallpaperaccess.com/4k-mountain for wallpapers of mountains, and set the screensaver to Photos with the style of Ken Burns"
 
-prep-proxy:
-    #!/usr/bin/env bash
-    set -e
-    echo "Enter the proxy URL (e.g. http://proxy.example.com:8080):"
-    read proxy_url
-    echo "HTTP_PROXY=$proxy_url" >> .env
-    echo "HTTPS_PROXY=$proxy_url" >> .env
-
-prep-proxy-ui:
-    # docker run --rm -it -p 5080:80 dockerproxy.net/haishanh/yacd
-    docker run --rm -it -p 5080:80 ghcr.io/haishanh/yacd:master
 
 # see https://macos-defaults.com/ and https://github.com/Swiss-Mac-User/macOS-scripted-setup and https://github.com/mathiasbynens/dotfiles/blob/main/.macos
 #
@@ -149,90 +212,36 @@ prep-def:
     # Set machine sleep to 5 minutes on battery
     sudo pmset -b sleep 5
 
+## Mac Tiling
+
+# I'v configured it to use double tap opt then hold to trigger the radial menu
+# direction keys to place the window in 8 directions, space to maximize, enter to center
+# It's so smooth
+#
+prep-loop:
+    #!/usr/bin/env bash
+    [ -d /Applications/Loop.app ] || brew install loop
+
 prep-switch:
     [ -d /Applications/InstantSpaceSwitcher.app ] || brew install --cask jurplel/tap/instant-space-switcher
     just uq /Applications/InstantSpaceSwitcher.app
 
-# A terminal-based battery and energy monitor for macOS and Linux.
-# But it crashes for now, issue: https://github.com/jordond/jolt/issues/114
+# superceded by prep-switch
 #
-prep-jolt:
-    which jolt || (curl -fsSL https://getjolt.sh/install.sh | bash) # || brew install jordond/tap/jolt
-
-remove FILE_OR_DIR:
+prep-space:
     #!/usr/bin/env bash
-    TEMP_LOCATION="/tmp/$(whoami)-$(date +%s)-$(head -c 5 /dev/random|xxd -ps)"
-    mv {{FILE_OR_DIR}} $TEMP_LOCATION
-    echo "{{FILE_OR_DIR}} is temporarily moved to $TEMP_LOCATION"
+    [ -d /Applications/FlashSpace.app ] || brew install flashspace
 
-prep-ubuntu:
-    #!/usr/bin/env bash
-    sudo apt update
-    sudo apt install -y build-essential curl file git
-    # this fix weird issue that $USER is root, no matter I use `su -` or ssh with non-root user
-    # causing: /home/linuxbrew/.linuxbrew/Homebrew/.git: Permission denied
-    export USER=`whoami`
-    sudo just remove /home/linuxbrew
-    just remove ~/.cache/Homebrew
-    yes|/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    just prep-rc
-    sudo apt install -y zsh
+## Networking
 
-prep-user USER:
+prep-proxy-env:
     #!/usr/bin/env bash
     set -e
-    useradd --shell "`which bash`" {{USER}}
-    mkdir ~{{USER}}
-    chown -R {{USER}}.{{USER}} ~{{USER}}
-    passwd {{USER}}
-    echo "{{USER}} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+    echo "Enter the proxy URL (e.g. http://proxy.example.com:8080):"
+    read proxy_url
+    echo "HTTP_PROXY=$proxy_url" >> .env
+    echo "HTTPS_PROXY=$proxy_url" >> .env
 
-prep-lvim-in-zsh:
-    #!/usr/bin/env bash
-    just prep-lvim
-
-mk-rp:
-    sudo docker run -d --privileged --name rp-dev -v{{justfile_directory()}}:/root/projects/forest runpod/pytorch:2.2.1-py3.10-cuda12.1.1-devel-ubuntu22.04 bash -c 'sleep infinity'
-
-run-rp:
-    sudo docker exec -it -w /root/projects/forest rp-dev bash
-
-# Copy and paste to run as root, because we have no just at this point
-# Next, run: just prep-act
-#
-bt-ubuntu:
-    #!/usr/bin/env bash
-    apt update
-    apt install -y build-essential curl file git sudo neovim
-    curl https://mise.run | sh
-    eval "$(~/.local/bin/mise activate bash)"
-    mise trust
-    mise use -g just
-    echo 'eval "$(~/.local/bin/mise activate bash)"' >> ~/.bashrc
-
-bt CONTAINER_NAME:
-    echo '#!/usr/bin/env bash\napt update\napt install -y build-essential curl file git sudo neovim\ncurl https://mise.run | sh\neval "$(~/.local/bin/mise activate bash)"\nmise trust\nmise use -g just\necho 'eval \"$(~/.local/bin/mise activate bash)\"' >> ~/.bashrc' | docker exec -i {{CONTAINER_NAME}} bash -s
-
-[linux]
-prep-brew:
-    yes|/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-    echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.bashrc
-
-# Error: Your Xcode (15.4) at /Applications/Xcode.app is too outdated.
-# Please update to Xcode 16.0 (or delete it).
-# Xcode can be updated from the App Store.
-
-# Error: Your Command Line Tools are too outdated.
-# Update them from Software Update in System Settings.
-
-# If that doesn't show you any updates, run:
-#   sudo rip /Library/Developer/CommandLineTools
-#   sudo xcode-select --install
-
-# Alternatively, manually download them from:
-#   https://developer.apple.com/download/all/.
-# You should download the Command Line Tools for Xcode 16.0.
-
-# Error: You have not agreed to the Xcode license. Please resolve this by running:
-#   sudo xcodebuild -license accept
+prep-proxy-ui:
+    # docker run --rm -it -p 5080:80 dockerproxy.net/haishanh/yacd
+    docker run --rm -it -p 5080:80 ghcr.io/haishanh/yacd:master

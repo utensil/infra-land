@@ -71,6 +71,12 @@ prep-mon:
         fi
     fi
 
+# A terminal-based battery and energy monitor for macOS and Linux.
+# But it crashes for now, issue: https://github.com/jordond/jolt/issues/114
+#
+prep-jolt:
+    which jolt || (curl -fsSL https://getjolt.sh/install.sh | bash) # || brew install jordond/tap/jolt
+
 awake:
     # caffeinate -d -s
     caffeinate -s
@@ -394,21 +400,6 @@ prep-ym:
 
 # music:
 #     code-radio --no-logo --volume 5
-
-
-## Tiling
-
-# I'v configured it to use double tap opt then hold to trigger the radial menu
-# direction keys to place the window in 8 directions, space to maximize, enter to center
-# It's so smooth
-#
-prep-loop:
-    #!/usr/bin/env bash
-    [ -d /Applications/Loop.app ] || brew install loop
-
-prep-space:
-    #!/usr/bin/env bash
-    [ -d /Applications/FlashSpace.app ] || brew install flashspace
 
 
 ## Tmux and friends
