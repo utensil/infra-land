@@ -309,7 +309,7 @@ prep-ssh-keys:
     read "remote_host?Enter remote hostname or IP: " || return
 
     # Ask if user wants to proceed with key deployment
-    if read -q "?Do you want to deploy the public key now? (y/n) "; then
+    read -n 1 -p "Do you want to deploy the public key now? (y/n) " REPLY && echo; if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo  # Add a newline after the prompt
         if ssh-copy-id -x -i "$key_path.pub" "$remote_user@$remote_host"; then
             echo "Public key deployed successfully!"

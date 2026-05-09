@@ -192,9 +192,9 @@ prep-gom:
 gom-link: prep-gom
     #!/usr/bin/env bash
     gollama -link-lmstudio --dry-run
-    read -q "?Confirm linking LMStudio models to ollama (y/n)? " && gollama -link-lmstudio
+    read -n 1 -p "Confirm linking LMStudio models to ollama (y/n)? " REPLY && echo && [[ $REPLY =~ ^[Yy]$ ]] && gollama -link-lmstudio
     gollama -L --dry-run
-    read -q "?Confirm linking ollma models to LMStudio (y/n)? " && gollama -L
+    read -n 1 -p "Confirm linking ollma models to LMStudio (y/n)? " REPLY && echo && [[ $REPLY =~ ^[Yy]$ ]] && gollama -L
 
 gom-reset:
     gollama -cleanup
