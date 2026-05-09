@@ -180,7 +180,7 @@ try-astro:
 
 prep-zed:
     #!/usr/bin/env bash
-    [[ -f /Applications/Zed.app/Contents/MacOS/zed ]] || brew install --cask zed@preview
+    [ -d "/Applications/Zed Preview.app" ] || brew install --cask zed@preview
 
 ## Obsidian and KB related
 
