@@ -481,7 +481,7 @@ new-at NAME="mon" CWD="":
 kill NAME:
     #!/usr/bin/env bash
     ps aux|grep {{NAME}}|grep -v grep|grep -v 'kill {{NAME}}'
-    read -n 1 -p "Confirm killing these processes (y/n)? " REPLY && echo && [[ $REPLY =~ ^[Yy]$ ]] && (ps aux|grep {{NAME}}|grep -v grep|grep -v 'kill {{NAME}}'|awk '{print $2}'|xargs kill -9) || echo -e "\nKill aborted"
+    read -n 1 -p "Confirm killing these processes (y/n)? " REPLY && echo && [[ $REPLY =~ ^[Yy]$ ]] && (ps aux|grep {{NAME}}|grep -v grep|grep -v 'kill {{NAME}}'|awk '{print $2}'|xargs sudo kill -9) || echo -e "\nKill aborted"
 
 # runf SESSION="mon" CMD="zsh":
 #     zellij run -f -n {{SESSION}} -- {{CMD}}
