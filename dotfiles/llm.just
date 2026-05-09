@@ -226,6 +226,8 @@ ox-vm VM:
 ox4 *ARGS:
     env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy omlx launch {{ARGS}}
 
+prep-rx:
+    brew install raullenchai/rapid-mlx/rapid-mlx
 
 # VISUAL_MODEL := "llama3.2-vision"
 # VISUAL_MODEL := "minicpm-v"
