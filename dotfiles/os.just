@@ -245,3 +245,17 @@ prep-proxy-env:
 prep-proxy-ui:
     # docker run --rm -it -p 5080:80 dockerproxy.net/haishanh/yacd
     docker run --rm -it -p 5080:80 ghcr.io/haishanh/yacd:master
+
+## iOS
+
+prep-iback:
+    [ -d /Applications/Phosphor.app ] || (brew tap momenbasel/phosphor && brew install --cask phosphor)
+    # requires installing into system python
+    # rejected by homebrew
+    # workaround: install pipx
+    brew install pipx
+    pipx upgrade pymobiledevice3
+    # sudo pymobiledevice3 remote tunneld
+    brew install libimobiledevice ideviceinstaller
+    # rejected by homebrew: linux only
+    # brew install ifuse
