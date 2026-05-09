@@ -168,7 +168,7 @@ prep-cmux:
     cp -f ~/.config/ghostty/config "/Users/utensil/Library/Application Support/com.mitchellh.ghostty/config"
 
 prep-muxy:
-    brew tap muxy-app/tap && brew install --cask muxy
+    [ -d /Applications/Muxy.app ] || (brew tap muxy-app/tap && brew install --cask muxy)
 
 prep-herdr:
     which herdr && herdr update || (curl -fsSL https://herdr.dev/install.sh | sh)
