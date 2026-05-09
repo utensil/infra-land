@@ -42,8 +42,9 @@ ALWAYS cite the rules which have been actually followed during the reply at the 
 - ❌ **Must NOT**: Run destructive operations or execute tasks with side effects without permission
 
 ### G-commit: Commit changes to version control system
-- ✅ **Should**: Commit changes after editing. ALL commits MUST include [AGENT] tag.
-- ❌ **Must NOT**: Commit `.env` or files containing secrets/credentials
+
+- ✅ **Should**: After editing files, before pausing and asking for further instructions, commit changes to version control system. ALWAYS commit per section "Commit discipline" below. ALL commits MUST include [AGENT] tag.
+- ❌ **Must NOT**: Commit files that are not directly related to current task. Only commit files intentionally modified as part of the specific work requested. Do not commit unrelated changes, even if they exist in working directory.
 
 ### G-safe: Prioritize data safety
 - ✅ **Should**: Use `rip` instead of `rm` for file/directory removal
@@ -98,10 +99,40 @@ link-conf CONF:
 
 ## 4. Commit discipline
 
-- **Granular commits**: One logical change per commit.
-- **Conventional commits**: `feat:`, `fix:`, `docs:`, `refactor:`, etc.
-- **MANDATORY [AGENT] tag**: ALL agent-generated commits MUST end the title with `[AGENT]`.
-- **No secrets**: Never commit passwords, credentials, or `.env` files.
+The version control system is `jj`, NOT git.
+
+ALWAYS follow this `jj` commit workflow:
+
+- Before committing:
+    - use `jj` (which combines `jj status` and `jj log` in a customized way) to learn about status and recent revisions
+        - so it's clear which revision to commit, and won't commit an empty or unrelated revision
+        - fallback to use `jj log --no-graph -T 'change_id.short(7) ++ " " ++ commit_id.short(7) ++ " | " ++ author.name() ++ " | " ++ committer.timestamp().ago() ++ " | " ++ if(local_bookmarks, local_bookmarks ++ " | ", "") ++ description.first_line() ++ "\n"' -n <N>` to view the last N revisions in a concise format
+    - run `jj diff` or `jj diff -r <rev>` to review all changes in the working copy or the revision to commit.
+- During committing:
+    - **Granular commits**: One logical change per commit.
+    - **Targeted commit**:
+        - Only include changes for files intentionally edited, for both the files to commit, and the content of the commit message
+        - To commit file `A.txt`, `B that has spaces.txt`, and directory `src`, use `jj commit 'A.txt | "B that has spaces.txt" | src ' -m "<message>"`.
+    - **No sensitive information**: If the diff to be committed includes passwords, credentials, real environment variables, IP addresses, absolute paths outside the project, or other personal/private information, refuse to commit and alert the user; never add such information into the commit message too.
+- After committing, if asked to improve commit message:
+    - To edit the commit message of any commit, use `jj desc -r <rev> -m "<message>"` for a specific revision.
+
+To determine the commit message, ALWAYS follow this checklist:
+
+*   **Use conventional commits**: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, etc.
+*   **Descriptive commit messages**: ALWAYS include both:
+    - Short title explaining the *why* (what problem this solves)
+    - Detailed description of *what* changed (specific files, functions, behavior, related issue links, etc.)
+        - inspect the full diff for the edited files for summarization, and don't use only recent rounds of conversation to describe the whole commit that contain changes from earlier conversations
+        - NEVER cite the rules (e.g. (per G-verify)) in the commit message
+    - Example: `fix: resolve missing task in sync workflow [AGENT]` + description of which files were modified and how
+*   **MANDATORY [AGENT] tag**: ALL agent-generated commits MUST end the title of the commit message with `[AGENT]` tag. NO EXCEPTIONS.
+    - ✅ Correct: `feat: add helix config sync task [AGENT]`
+    - ❌ Wrong: `feat: add helix config sync task` (missing [AGENT] tag)
+
+Disciplines for humans:
+
+*   **Review AI-generated code**: Never merge code you don't understand.
 
 ---
 
