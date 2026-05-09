@@ -229,6 +229,9 @@ ox4 *ARGS:
 prep-rx:
     brew install raullenchai/rapid-mlx/rapid-mlx
 
+prep-dx:
+    uv tool install dflash-mlx
+
 # VISUAL_MODEL := "llama3.2-vision"
 # VISUAL_MODEL := "minicpm-v"
 #
