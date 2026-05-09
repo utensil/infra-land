@@ -92,6 +92,9 @@ prep-delta:
 
 prep-hunk:
     which hunk || bun add -g hunkdiff
+    git config --global core.pager "hunk pager --mode stack --pager --wrap"
+    mkdir -p ~/.config/lazygit
+    cp -f dotfiles/.config/lazygit/config.yml ~/.config/lazygit/config.yml
 
 prep-resolve:
     which mergiraf || brew install mergiraf
