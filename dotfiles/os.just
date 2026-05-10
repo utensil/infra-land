@@ -77,6 +77,17 @@ prep-brew:
 # Error: You have not agreed to the Xcode license. Please resolve this by running:
 #   sudo xcodebuild -license accept
 
+# Error: Your Command Line Tools are too outdated.
+# Update them from Software Update in System Settings.
+#
+# If that doesn't show you any updates, run:
+#   sudo rm -rf /Library/Developer/CommandLineTools
+#   sudo xcode-select --install
+#
+# Alternatively, manually download them from:
+#   https://developer.apple.com/download/all/.
+# You should download the Command Line Tools for Xcode 26.3.
+
 # Create a Linux user with a bash shell and home directory.
 prep-user USER:
     #!/usr/bin/env bash
