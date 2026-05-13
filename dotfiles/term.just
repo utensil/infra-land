@@ -209,6 +209,9 @@ prep-zsh:
     brew install zsh-autosuggestions zsh-syntax-highlighting
     # zsh-vi-mode
 
+# https://kasad.com/blog/zsh-profiling/
+# also uncomment the lines at the start and the end of .zshrc
+#
 # Measure interactive zsh startup time.
 prof-zsh:
     time zsh -i -c exit
@@ -654,4 +657,3 @@ prep-mp:
 # not really working for nvim etc.
 # diss-at SESSION="main":
 #     diss -e g -a {{SESSION}} zsh
-
