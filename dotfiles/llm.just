@@ -720,7 +720,7 @@ prep-pi:
 # AGENT-NOTE: Delegates to improved link-conf which handles re-entry safely
 # (rips symlinks, backs up real files with timestamp suffix).
 #
-# Prepare OpenCode for DeepSeek V3.1.
+# Configure OpenCode for DeepSeek V4 Pro high reasoning.
 prep-oc-ds4: prep-oc
     just link-conf opencode/opencode-ds4.json opencode/opencode.json
     echo "Configured opencode to use DeepSeek V4 Pro (reasoningEffort: high)"
@@ -728,7 +728,7 @@ prep-oc-ds4: prep-oc
 
 # AGENT-NOTE: Symlinks pi settings with re-entry safety (rips symlinks, backs up real files).
 #
-# Prepare pi for DeepSeek V3.1.
+# Configure pi for DeepSeek V4 Pro high thinking.
 prep-pi-ds4: prep-pi
     #!/usr/bin/env bash
     set -e
