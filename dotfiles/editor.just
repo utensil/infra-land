@@ -2,33 +2,40 @@
 
 ## Helix Editor
 
+# Install or update scls.
 prep-scls:
     which simple-completion-language-server || cargo install --git https://github.com/estin/simple-completion-language-server.git
     simple-completion-language-server fetch-external-snippets || true
 
+# Install or update hx.
 prep-hx:
     which hx || brew install helix --HEAD
     just prep-hx-conf
     hx --grammar fetch
     hx --grammar build
 
+# Install or update hx conf.
 prep-hx-conf:
     just link-conf helix
     ls -lhta ~/.config/helix
     just prep-base16-helix
     # just prep-scls
 
+# Reset hx conf.
 reset-hx-conf:
     rip ~/.config/helix || true
 
+# Reset hx.
 reset-hx:
     brew uninstall helix || true
 
+# Reset hxx.
 reset-hxx:
     cargo uninstall helix-term || true
 
 # -v enables verbose logging
 #
+# Run hx.
 hx PROJ="forest" *PARAMS="":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
@@ -36,6 +43,7 @@ hx PROJ="forest" *PARAMS="":
 
 # doc: https://docs.helix-editor.com/master/
 #
+# Install or update hxx.
 prep-hxx:
     #!/usr/bin/env bash
     just prep-hx-conf
@@ -52,6 +60,7 @@ prep-hxx:
     ~/.cargo/bin/hx -g fetch
     ~/.cargo/bin/hx -g build
 
+# Run hxx.
 hxx PROJ="forest" *PARAMS="":
     #!/usr/bin/env bash
     export HELIX_RUNTIME=~/projects/helix/runtime
@@ -60,6 +69,7 @@ hxx PROJ="forest" *PARAMS="":
 
 # Base16 Themes for Helix
 #
+# Install or update base16 helix.
 prep-base16-helix:
     #!/usr/bin/env bash
     just clone tinted-theming base16-helix
@@ -68,33 +78,40 @@ prep-base16-helix:
 
 ## Neovim
 
+# Install or update NVIM.
 prep-nvim:
     which nvim || brew install neovim
     which luarocks || brew install luarocks
     # luarocks --local --lua-version=5.1 install magick
     which stylua || brew install stylua
 
+# Deploy NVIM configuration.
 sync-nvim:
     #!/usr/bin/env bash
     mkdir -p ~/.config/nvim
     cp -f dotfiles/.config/nvim/init.lua ~/.config/nvim/init.lua
 
+# Run NVIM.
 nvim PROJ="forest" *PARAMS="": sync-nvim
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}} && nvim {{PARAMS}}
 
 ## Nvim plugins
 #
+# Deploy plugins configuration.
 sync-plugins: stylua
     mkdir -p ~/.config/nvim/lua/plugins/
     cp -f dotfiles/.config/nvim/lua/plugins/spec.lua ~/.config/nvim/lua/plugins/spec.lua
 
 # Run stylua for *.lua
+#
+# Format Lua config files with stylua.
 stylua:
     stylua dotfiles/.config/nvim/init.lua dotfiles/.config/lvim/config.lua dotfiles/.config/nvchad/nvchad-init.lua dotfiles/.config/nvim/lua/plugins/spec.lua
 
 ## LunarVim
 
+# Install or update LVIM.
 prep-lvim: prep-term prep-nvim
     #!/usr/bin/env bash
     yes|bash <(curl -s https://raw.githubusercontent.com/lunarvim/lunarvim/master/utils/installer/install.sh)
@@ -103,63 +120,75 @@ prep-lvim: prep-term prep-nvim
     (cd ~/.config/lvim/ && lvim --headless +'lua require("lvim.utils").generate_settings()' +qa && sort -o lv-settings.lua{,} )
     echo "Use lvim to start LunarVim"
 
+# Deploy LVIM configuration.
 sync-lvim: stylua sync-nvim
     mkdir -p ~/.config/lvim
     cp -f dotfiles/.config/nvim/init.lua ~/.config/lvim/nvim-init.lua
     cp -f dotfiles/.config/nvim/lua/plugins/spec.lua ~/.config/lvim/uts-plugins.lua
     cp -f dotfiles/.config/lvim/config.lua ~/.config/lvim/config.lua
 
+# Run LVIM.
 lvim PROJ="forest" *PARAMS="": sync-lvim
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}} && lvim {{PARAMS}}
 
 ## LazyVim
 
+# Install or update lazyvim.
 prep-lazyvim:
     #!/usr/bin/env bash
     just clone-conf lazyvim LazyVim starter
 
+# Deploy lazyvim configuration.
 sync-lazyvim: stylua sync-plugins
     mkdir -p ~/.config/lazyvim
     cp -f dotfiles/.config/nvim/init.lua ~/.config/lazyvim/lua/config/options.lua
 
+# Run lazyvim.
 lazyvim PROJ="forest": sync-lazyvim
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}} && nvim --cmd 'set runtimepath+=~/.config/lazyvim/' --cmd 'lua package.path = package.path .. ";{{home_directory()}}/.config/lazyvim/lua/?.lua"' -u ~/.config/lazyvim/init.lua
 
 ## NvChad
 
+# Install or update chad.
 prep-chad:
     #!/usr/bin/env bash
     just clone-conf nvchad NvChad starter
 
+# Deploy chad configuration.
 sync-chad: stylua sync-plugins
     mkdir -p ~/.config/nvchad/
     cp -f dotfiles/.config/nvim/init.lua ~/.config/nvchad/nvim-init.lua
     cp -f dotfiles/.config/nvchad/nvchad-init.lua ~/.config/nvchad/nvchad-init.lua
 
+# Run chad.
 chad PROJ="forest": sync-chad
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}} && nvim --cmd 'set runtimepath+=~/.config/nvchad/' --cmd 'lua package.path = package.path .. ";{{home_directory()}}/.config/nvchad/lua/?.lua"' -u ~/.config/nvchad/nvchad-init.lua
 
 ## AstroNvim
 
+# Install or update astro.
 prep-astro:
     #!/usr/bin/env bash
     just clone-conf astro AstroNvim template
 
+# Deploy astro configuration.
 sync-astro: stylua sync-plugins
     mkdir -p ~/.config/astro/lua/
     cp -f dotfiles/.config/astro/lua/community.lua ~/.config/astro/lua/
     mkdir -p ~/.config/astro/lua/plugins
     cp -f dotfiles/.config/astro/lua/plugins/spec.lua ~/.config/astro/lua/plugins/spec.lua
 
+# Run astro.
 astro PROJ="forest": sync-astro
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}} && NVIM_APPNAME=astro nvim .
 
 # https://docs.astronvim.com/reference/alt_install/
 
+# Try astro.
 try-astro:
     #!/usr/bin/env bash
     if docker ps -a | grep -q astro; then
@@ -178,29 +207,35 @@ try-astro:
 
 ## Zed editor
 
+# Install or update zed.
 prep-zed:
     #!/usr/bin/env bash
     [ -d "/Applications/Zed Preview.app" ] || brew install --cask zed@preview
 
 ## Obsidian and KB related
 
+# Install or update ob.
 prep-ob:
     brew install --cask obsidian
 
 # ekphos is mostly compatible with Obsidian
 # https://github.com/hanebox/ekphos
 #
+# Install or update ek.
 prep-ek:
     which ekphos || cargo install ekphos
 
+# Install or update leaf.
 prep-leaf:
     which leaf || (curl -fsSL https://raw.githubusercontent.com/RivoLink/leaf/main/scripts/install.sh | sh)
 
+# Install or update nm.
 prep-nm:
     which notesmd-cli || brew install yakitrak/yakitrak/notesmd-cli
 
 ## LSP: programming languages
 
+# Install or update LSP.
 prep-lsp:
     # html, css, json, eslint
     # css ls enables color swatches in helix
@@ -225,6 +260,7 @@ prep-lsp:
 
 # https://github.com/zigtools/zls/issues/2402
 #
+# Install or update zls.
 prep-zls:
     #!/usr/bin/env bash
     set -e
@@ -239,6 +275,7 @@ prep-zls:
 
 ## LSP: content authoring
 
+# Install or update LSP md.
 prep-lsp-md:
     which marksman || brew install marksman
     which markdown-oxide || brew install markdown-oxide
@@ -246,6 +283,7 @@ prep-lsp-md:
 
 ## LSP: Spellcheck
 
+# Install or update harper.
 prep-harper:
     which harper-ls || brew install harper
     # requires a recent nightly, otherwise compilation will fail on an unstable feature
@@ -253,6 +291,7 @@ prep-harper:
     # pretty output, though, thanks to https://docs.rs/crate/ariadne
     which harper-cli || cargo +nightly install --git https://github.com/Automattic/harper harper-cli --locked
 
+# Install or update codebook.
 prep-codebook:
     which codebook-lsp || cargo install codebook-lsp
 
@@ -260,6 +299,7 @@ prep-codebook:
 
 # https://github.com/DJAndries/llmvm/tree/master/frontends/codeassist
 #
+# Install or update LSP lv.
 prep-lsp-lv:
     #!/usr/bin/env bash
     set -e
@@ -268,6 +308,7 @@ prep-lsp-lv:
     echo "model=\"outsource/openai-chat/$OPENAI_API_MODEL\"\nprompt_template_id=\"codegen\"\nmax_tokens=8192" > ~/Library/Application\ Support/com.djandries.llmvm/presets/$OPENAI_API_MODEL.toml
     echo "default_preset=\"$OPENAI_API_MODEL\"" > ~/Library/Application\ Support/com.djandries.llmvm/codeassist.toml
 
+# Install or update LSP ai.
 prep-lsp-ai:
     which cargo || just prep-rust
     which lsp-ai || cargo install lsp-ai
@@ -279,25 +320,30 @@ prep-lsp-ai:
 
 ## Web editors
 
+# Install or update wxmd.
 prep-wxmd:
     which md-cli || npm i -g @doocs/md-cli
 
+# Run wxmd.
 wxmd PORT="8899":
     echo open http://127.0.0.1:{{PORT}}
     md-cli port=8899
 
 ## Notebook
 
+# Open a notebook file in the viewer.
 nbview FILE:
     uvx euporie notebook {{FILE}}
 
 # https://github.com/livebook-dev/livebook#installation
 #
+# Install or update lb.
 prep-lb:
     #!/usr/bin/env bash
     mix do local.rebar --force, local.hex --force
     yes|mix escript.install hex livebook
 
+# Run Lazybook.
 lb:
     LIVEBOOK_IFRAME_PORT=58081 livebook server --port 58080
 

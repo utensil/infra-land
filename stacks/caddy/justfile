@@ -2,18 +2,25 @@
 
 set dotenv-load
 
+# List available recipes.
 default:
     just --list
 
 # Update /etc/hosts for all stacks
+#
+# Install or update hosts.
 prep-hosts ip="127.0.0.1":
     uv run prep_homelab.py {{ip}}
 
 # Generate Caddyfile.generated for all stacks
+#
+# Generate the Caddyfile.
 gen-caddyfile:
     uv run gen_caddyfile.py
 
 # Trust the Caddy root CA certificate (Option 1)
+#
+# Trust the local Caddy CA.
 trust-ca:
     #!/usr/bin/env bash
     cert="${PODS_HOME}/caddy/data/caddy/pki/authorities/local/root.crt"
@@ -36,6 +43,8 @@ trust-ca:
     fi
 
 # Remove the Caddy root CA certificate from trust store
+#
+# Remove trust for the local Caddy CA.
 untrust-ca:
     #!/usr/bin/env bash
     cert="${PODS_HOME}/caddy/data/caddy/pki/authorities/local/root.crt"
@@ -68,6 +77,7 @@ untrust-ca:
         exit 1
     fi
 
+# Show Caddy stack help.
 help:
     @echo "Available tasks:"
     @echo "  just prep-hosts [ip]   # Update /etc/hosts for all stacks"

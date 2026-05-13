@@ -1,3 +1,4 @@
+# Install fancycat.
 prep-fancycat:
     #!/usr/bin/env bash
     set -e
@@ -13,6 +14,7 @@ prep-fancycat:
     mv zig-out/bin/fancy-cat /usr/local/bin/
     rip $fancy_cat_dir
 
+# Install or update alacritty.
 prep-alacritty:
     #!/usr/bin/env bash
     # Install FiraCode Nerd Font from https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/FiraCode.zip
@@ -23,15 +25,18 @@ prep-alacritty:
     # https://alacritty.org/config-alacritty.html
     cp dotfiles/.alacritty.toml ~/.alacritty.toml
 
+# Install or update kitty.
 [macos]
 prep-kitty: && sync-kitty
     which kitty || brew install --cask kitty
 
+# Install or update kitty.
 [linux]
 prep-kitty:
     # no op for now
     # curl -L https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin
 
+# Deploy kitty configuration.
 @sync-kitty:
     #!/usr/bin/env bash
     # configure kitty
@@ -45,6 +50,7 @@ prep-kitty:
         kill -SIGUSR1 $KITTY_PID
     fi
 
+# Install or update warp.
 [macos]
 prep-warp:
     #!/usr/bin/env bash
@@ -53,14 +59,17 @@ prep-warp:
         echo "CMD+, then search for terminal, specify External: Osx Exec to Warp.app"
     fi
 
+# Install or update wez.
 prep-wez:
     which wezterm || brew install --cask wezterm
     # brew install --cask wezterm@nightly
 
+# Deploy wez configuration.
 sync-wez:
     mkdir -p ~/.config/wezterm
     cp -f dotfiles/.config/wezterm/wezterm.lua ~/.config/wezterm/wezterm.lua
 
+# Install or update sbar.
 prep-sbar:
     #!/usr/bin/env bash
     curl -L https://raw.githubusercontent.com/FelixKratz/dotfiles/master/install_sketchybar.sh | sh
@@ -73,9 +82,11 @@ prep-sbar:
 # Inspired by https://github.com/FelixKratz/dotfiles
 dotfiletmpdir := "/tmp/dotfiles-" + choose('8', HEX)
 
+# Install or update dotfiles tmp.
 prep-dotfiles-tmp:
     git clone https://github.com/FelixKratz/dotfiles {{dotfiletmpdir}}
 
+# Render SketchyBar configuration.
 config-sbar: prep-dotfiles-tmp
     #!/usr/bin/env bash
     rip ~/.config/sketchybar
@@ -83,32 +94,39 @@ config-sbar: prep-dotfiles-tmp
     rip {{dotfiletmpdir}}
     brew services restart felixkratz/formulae/sketchybar
 
+# Run SketchyBar.
 sbar:
     brew services restart felixkratz/formulae/sketchybar
 
+# Install or update tile.
 prep-tile: prep-amethyst
 
+# Install or update skhd.
 prep-skhd: prep-dotfiles-tmp
     brew install koekeishiya/formulae/skhd
     rip ~/.config/skhd
     cp -r {{dotfiletmpdir}}/.config/skhd ~/.config/
     skhd --start-service
 
+# Install or update yabai.
 prep-yabai: prep-dotfiles-tmp prep-skhd
     brew install koekeishiya/formulae/yabai
     rip ~/.config/yabai
     cp -r {{dotfiletmpdir}}/.config/yabai ~/.config/
     yabai --start-service
 
+# Disable yabai.
 no-yabai:
     yabai --stop-service
     skhd --stop-service
 
+# Install or update amethyst.
 prep-amethyst:
     brew install --cask amethyst
     cp -f dotfiles/.amethyst.yml ~/.amethyst.yml
 
 
+# Install or update sync dir tools.
 @prep-sync-dir-tools: prep-rust
     which jw || (yes|cargo binstall jw)
     which rusync || (yes|cargo binstall rusync)
@@ -116,10 +134,12 @@ prep-amethyst:
 
 # rusync doesn't keep timestamp thus deprecated
 
+# Synchronize directories with the deprecated tool.
 deprecated-sync-dirs SRC DST:
     @just rusync-dirs {{SRC}} {{DST}}
     @just check-dirs {{SRC}} {{DST}}
 
+# Synchronize directories with rusync.
 deprecated-rusync-dirs SRC DST: prep-sync-dir-tools
     #!/usr/bin/env bash
     echo "🚀 Initiating sync..."
@@ -129,6 +149,7 @@ deprecated-rusync-dirs SRC DST: prep-sync-dir-tools
 
 # https://www.kelen.cc/dry/docker-hub-mirror
 #
+# Run Galileo tooling.
 gal:
     #!/usr/bin/env bash
     mkdir -p ~/home-gallery/data/config
@@ -141,6 +162,7 @@ gal:
     gallery run init --source /data/Pictures
     gallery run server
 
+# Run Prism launcher.
 prism:
     #!/usr/bin/env bash
     mkdir -p $HOME/photoprism/storage
@@ -152,6 +174,7 @@ prism:
     echo "Visit http://localhost:2342/, login with admin:insecure"
     docker compose up
 
+# Run Pika tooling.
 pica:
     #!/usr/bin/env bash
     mkdir -p $HOME/picapport
@@ -159,15 +182,19 @@ pica:
     docker run -it --rm --name picapport -p 8888:8888 -v $HOME/Pictures/photos:/opt/picapport/photos -v $HOME/picapport:/opt/picapport/data -e "PICAPPORT_PORT=8888" -e "PICAPPORT_LANG=en" fionnb/picapport:latest
 
 # Prepare raycast
+#
+# Install or update ray.
 prep-ray:
     #!/usr/bin/env bash
     brew install --cask raycast
 
+# Install or update meet.
 prep-meet:
     brew tap zackriya-solutions/meetily
     which meetily-server || brew install --cask meetily
     meetily-download-model medium
 
+# Run meet.
 meet LANG="zh" SIZE="medium":
     meetily-server --language {{LANG}} --model {{SIZE}}
 

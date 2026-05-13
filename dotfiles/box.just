@@ -6,6 +6,7 @@
 #    brew install podman-desktop
 #    docker context use default
 
+# Install or update pod.
 prep-pod:
     which docker || (brew install docker; brew link docker)
     which docker-compose || brew install docker-compose
@@ -26,6 +27,7 @@ prep-pod:
 # to access lan, `--network-address` is needed
 # see https://github.com/abiosoft/colima/blob/main/docs/FAQ.md#the-virtual-machines-ip-is-not-reachable
 #
+# Run pod.
 pod CMD="start --vm-type=vz --vz-rosetta --network-address --mount-type=virtiofs":
     colima {{CMD}}
 
@@ -45,6 +47,7 @@ pod CMD="start --vm-type=vz --vz-rosetta --network-address --mount-type=virtiofs
 #
 # VM end: export DOCKER_HOST=tcp://<HOST_VM_IP>:2375
 #
+# Run pod proxy.
 pod-proxy CMD="start":
     #!/usr/bin/env bash
     PID_FILE=/tmp/colima-docker-proxy.pid
@@ -172,17 +175,21 @@ pod-proxy CMD="start":
 # distrobox create --name test --init --image quay.io/toolbx-images/alpine-toolbox:latest
 # distrobox enter test
 # https://github.com/89luca89/distrobox/blob/main/docs/compatibility.md#containers-distros
+# Install or update dist.
 [linux]
 prep-dist:
     which distrobox || sudo apt install -y distrobox
     which docker || sudo apt install podman-docker
 
+# Open the Kubernetes dashboard tool.
 k8s:
     colima start --kubernetes
 
+# Save a Docker image to a file.
 docker-save IMAGE FILE:
     docker save {{IMAGE}} -o {{FILE}}
 
+# Install or update lima.
 prep-lima:
     which lima || brew install lima
     # limactl stop default
@@ -191,17 +198,20 @@ prep-lima:
     # limactl start default
     # lima
 
+# Install or update tilt.
 prep-tilt:
     which tilt || brew install tilt-dev/tap/tilt
 
 # tilt up is usually all you need
 #
+# Run Tilt.
 tilt *PARAMS:
     tilt {{PARAMS}}
 
 # https://github.com/louislam/dockge
 # https://github.com/abiosoft/colima/issues/265
 #
+# Run dockge.
 dockge COMMAND="up" NETWORK_MODE="bridge":
     #!/usr/bin/env bash
     set -e
@@ -223,6 +233,7 @@ dockge COMMAND="up" NETWORK_MODE="bridge":
 
 # https://github.com/abiosoft/colima/issues/1234
 #
+# Install or update ctop.
 prep-ctop:
     which ctop || brew install ctop
     docker context ls
@@ -233,10 +244,12 @@ prep-ctop:
 # e - execute shell
 # w - open browser (convention: first port is http)
 #
+# Run ctop.
 ctop:
     colima status
     DOCKER_HOST=`docker context ls --format json|grep colima|jq -r '.DockerEndpoint'` ctop
 
+# Install or update lazydocker.
 prep-lazydocker:
     brew install jesseduffield/lazydocker/lazydocker
 
@@ -247,23 +260,28 @@ prep-lazydocker:
 # act:
 #     ./act.sh
 
+# Remove the local act runner container.
 rm-act:
     sudo docker stop act-dev
     sudo docker rm act-dev
 
+# Create the local act runner container.
 mk-act:
     sudo docker run -d --name act-dev -v{{justfile_directory()}}:/root/projects/forest -p 127.0.0.1:1210-1214:1210-1214 ghcr.io/catthehacker/ubuntu:act-latest bash -c 'sleep infinity'
 
+# Run act.
 run-act CMD="bash" OPTS="-it":
     sudo docker exec {{OPTS}} -w /root/projects/forest act-dev {{CMD}}
 
 # manually run bt-ubuntu first, or we won't even have just
 #
+# Install or update act.
 prep-act:
     # for brew and zsh
     just prep-ubuntu
     just prep-act-in-zsh
 
+# Install or update act in ZSH.
 prep-act-in-zsh:
     #!/usr/bin/env bash
     source ~/.zshrc
@@ -273,30 +291,37 @@ prep-act-in-zsh:
     echo 'To start lvim in server mode, run: just lv-remote'
     echo 'Then from outside the container, run: just lv-local'
 
+# Create the reverse proxy container.
 mk-rp:
     sudo docker run -d --privileged --name rp-dev -v{{justfile_directory()}}:/root/projects/forest runpod/pytorch:2.2.1-py3.10-cuda12.1.1-devel-ubuntu22.04 bash -c 'sleep infinity'
 
+# Run the reverse proxy container.
 run-rp:
     sudo docker exec -it -w /root/projects/forest rp-dev bash
 
 ## VM
 
+# Install or update aria2.
 prep-aria2:
     which aria || brew install aria2
 
+# Install or update lume.
 prep-lume:
     which lume || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/trycua/cua/main/libs/lume/scripts/install.sh)"
 
+# Update the Lume VM.
 update-lume:
     lume-update
 
 ## SSH
 
+# Reset generated SSH keys.
 reset-ssh-keys:
     rip ~/.ssh/id_*; rip ~/.ssh/*_rsa; rip ~/.ssh/*_dsa; rip ~/.ssh/*_ecdsa; rip ~/.ssh/*_ed25519 || true
 
 # still verifying
 #
+# Install or update SSH keys.
 prep-ssh-keys:
     #!/usr/bin/env bash
     key_path=~/.ssh/id_ed25519
@@ -331,6 +356,7 @@ prep-ssh-keys:
 
 # initial draft, not verified
 #
+# Install or update SSH server.
 prep-ssh-server:
     #!/usr/bin/env bash
 
@@ -380,6 +406,7 @@ prep-ssh-server:
 
 ## Remote
 
+# Install or update chisel.
 prep-chisel:
     #!/usr/bin/env bash
     which chisel || (curl https://i.jpillora.com/chisel! | bash)
@@ -387,49 +414,61 @@ prep-chisel:
 # default ports are ordered so it's clear that local nvim -> local 1212 -> mid 1213 -> remote nvim 1214
 # authenticated by environment variable AUTH user:pass
 #
+# Run cs remote.
 cs-remote PORT="1213":
     chisel server -v --port {{PORT}}
 
 cs_mid := env("CS_MID", "localhost:1213")
 
+# Run cs local.
 cs-local MID=cs_mid LOCAL="1212" TARGET="1214":
     chisel client -v http://{{MID}} {{LOCAL}}:{{TARGET}}
 
+# Run nv remote.
 nv-remote PROJ="forest" PORT="1214":
     just nvim {{PROJ}} --embed --listen localhost:{{PORT}}
 
+# Run nv local.
 nv-local PROJ="forest" PORT="1212":
     just nvim {{PROJ}} --server localhost:{{PORT}} --remote-ui
 
 # an alternative is use local on CentOS and remote on Ubuntu in docker, no chisel needed, just docekr port mapping
 #
+# Run lv remote.
 lv-remote PROJ="forest" HOST="0.0.0.0" PORT="1214":
     #!/usr/bin/env bash
     just lvim {{PROJ}} --embed --listen {{HOST}}:{{PORT}}
 
+# Run lv local.
 lv-local PROJ="forest" HOST="localhost" PORT="1214":
     #!/usr/bin/env bash
     just lvim {{PROJ}} --server {{HOST}}:{{PORT}} --remote-ui
 
+# Install or update ts.
 prep-ts:
     # brew install tailscale
     brew install homebrew/cask/tailscale-app
 
+# Install or update ts SSH.
 prep-ts-ssh:
     go install github.com/derekg/ts-ssh@main
 
 # --list
 # USER@HOST:PORT
 #
+# SSH through Tailscale.
 ts-ssh *PARAMS:
     `go env GOPATH`/bin/ts-ssh {{PARAMS}}
 
+# Install or update SCP.
 prep-scp:
     which termscp || brew install veeso/termscp/termscp
 
+# Run scp with the configured wrapper.
 scp *PARAMS:
     termscp {{PARAMS}}
 
 
+# Install or update crabbox.
 prep-crabbox:
     brew install openclaw/tap/crabbox

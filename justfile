@@ -14,5 +14,10 @@ import 'dotfiles/web.just'
 
 export PROJECT_ROOT := justfile_directory()
 
+# List available recipes.
 default:
+    just list
+
+# List available recipes.
+list:
     just --list

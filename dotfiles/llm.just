@@ -4,6 +4,7 @@
 #     which assembllm || (brew tap bradyjoslin/assembllm && brew install bradyjoslin/assembllm/assembllm)
 #     which cortex || echo "Visit https://cortex.so/docs/installation to download and install cortex"
 
+# Install or update aichat.
 prep-aichat:
     #!/usr/bin/env bash
     which aichat || brew install aichat
@@ -11,6 +12,7 @@ prep-aichat:
     dotfiles/bin/render_yaml.py dotfiles/.config/aichat/config.in.yaml ~/.config/aichat/config.yaml
     cat ~/.config/aichat/config.yaml|sd 'api_key:(.*)' 'api_key: <hidden>'
 
+# Run aichat with synced config.
 aichat *PARAMS: sync-aichat
     aichat {{PARAMS}}
 
@@ -19,24 +21,30 @@ aichat *PARAMS: sync-aichat
 # Instead:
 # In Helix, select some code, press `|` then type `aichat -c` optionally with extra `--prompt` as system prompt
 #
+# Install or update aicode.
 prep-aicode:
     sudo cp -f dotfiles/bin/aicode /usr/local/bin/
 
 # Render aichat config
+#
+# Render and deploy aichat configuration.
 sync-aichat:
     #!/usr/bin/env bash
     dotfiles/bin/render_yaml.py dotfiles/.config/aichat/config.in.yaml ~/.config/aichat/config.yaml
     cat ~/.config/aichat/config.yaml|sd 'api_key:(.*)' 'api_key: <hidden>'
 
+# Install or update aider.
 prep-aider:
     just sync-aider
     which mcpm-aider || npm install -g @poai/mcpm-aider
     mkdir -p ~/.config/claude
     [[ -f ~/.config/claude/claude_desktop_config.json ]] || echo '{"mcpServers": {} }' > ~/.config/claude/claude_desktop_config.json
 
+# Deploy aider configuration.
 sync-aider:
     cp -f dotfiles/bin/aider /usr/local/bin || sudo cp -f dotfiles/bin/aider /usr/local/bin
 
+# Suggest TODOs from the forest notes.
 todo:
     #!/usr/bin/env bash
     cat trees/uts-0018.tree |aichat --prompt "randomly suggest 3 small TODOs that I was interested to read or I intend to try"
@@ -47,17 +55,23 @@ todo:
 # just mcp remove XXX
 # just mcp toolprompt
 #
+# Manage MCP servers for aider.
 mcp *PARAMS="":
     #!/usr/bin/env bash
     mcpm-aider {{PARAMS}}
 
-aider PROJ="forest" *PARAMS="": # sync-aider
+# sync-aider
+#
+# Run aider in a project.
+aider PROJ="forest" *PARAMS="":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}} && aider {{PARAMS}}
 
+# Scrape a URL with aider.
 aiderweb URL:
     uvx --python 3.11 --from 'aider-chat[help,playwright,browser]' python -m aider.scrape {{URL}}
 
+# Install or update MP4.
 prep-mp4:
     #!/usr/bin/env bash
     just clone Olow304 memvid
@@ -73,6 +87,7 @@ prep-mp4:
 # just mp4 forest --input-dir trees --extensions .tree
 # just mp4 forest --load-existing output/dir_trees_20250606_200619.mkv
 #
+# Build a memvid archive for a project.
 mp4 PROJ="forest" *PARAMS="":
     #!/usr/bin/env bash
     cd ~/projects/memvid
@@ -102,18 +117,22 @@ mp4 PROJ="forest" *PARAMS="":
 #   2. Or use `just aider ../project_name` to start aider in another directory
 # I've tested that it works with `AI!`, `AI?`, and `ai!`
 #
+# Run aw.
 aw PROJ="forest" *PARAMS="":
     just aider {{PROJ}} --watch-files {{PARAMS}} --read AGENT.md --edit-format diff # -v
 
+# Start the LLM proxy.
 llm-proxy *PARAMS:
     #!/usr/bin/env bash
     # uvx --python 3.11 --from 'litellm[proxy]' litellm {{PARAMS}}
     aichat --serve 0.0.0.0:4000
 
+# Run the LLM proxy shortcut.
 llp *PARAMS:
     #!/usr/bin/env bash
     uvx --python 3.11 --from 'litellm[proxy]' --with opentelemetry-api --with opentelemetry-sdk --with opentelemetry-exporter-otlp --with langchain --with langchain-openai --with lunary --with openinference-instrumentation-litellm litellm {{PARAMS}} --api_base {{env('OPENAI_API_BASE')}} -m 'openai/{{env('OPENAI_API_MODEL')}}' -c dotfiles/.config/litellm/litellm.yaml
 
+# Run Claude project manager.
 cpm:
     #!/usr/bin/env bash
     set -e
@@ -130,10 +149,13 @@ cpm:
     LOGURU_LEVEL=DEBUG uvx poetry run uvicorn copilot_more.server:app --port 15432 --host {{env('COPILOT_HOST', '127.0.0.1')}}
 
 # -c : Generate a command to launch Claude Code with Copilot API config
+#
+# Run Claude project automation.
 cpa *PARAMS: prep-node
     #!/usr/bin/env bash
     npx -y copilot-api@latest start --port 15432 {{PARAMS}} # --verbose
 
+# Show Claude project automation usage.
 cpa-usage:
     open "https://ericc-ch.github.io/copilot-api/?endpoint=http://localhost:15432/usage"
     # see also
@@ -142,6 +164,7 @@ cpa-usage:
 
 # works only for Ubuntu
 #
+# Install or update cortex.
 [linux]
 prep-cortex:
     #!/usr/bin/env bash
@@ -150,16 +173,20 @@ prep-cortex:
     # fix broken dependencies
     sudo apt-get install -f -y
 
+# Install or update coder.
 prep-coder:
     # cortex pull bartowski/DeepSeek-V2.5-GGUF
     cortex run qwen2.5-coder
 
+# Render a Markdown file.
 md FILE:
     uvx markitdown "{{FILE}}"
 
+# Convert a PDF to text.
 p2t FILE:
     uvx --python 3.12 --from 'pix2text[multilingual]' p2t predict --device mps --file-type pdf -i "{{FILE}}"
 
+# Install or update p2t.
 prep-p2t:
     #!/usr/bin/env bash
     set -e
@@ -176,24 +203,31 @@ prep-p2t:
 
 # https://github.com/Byaidu/PDFMathTranslate
 #
+# Run the Chinese prompt helper.
 pzh:
     uvx pdf2zh -i
 
+# Install or update om.
 prep-om:
     which ollama || brew install ollama
 
+# Run Ollama.
 om:
     ollama serve
 
 DS_MODEL := "deepseek-r1:7b"
 # DS_MODEL := "deepseek-r1:14b"
 # DS_MODEL := "deepseek-r1:32b"
+#
+# Run the DeepSeek model in Ollama.
 ds:
     ollama run {{DS_MODEL}}
 
+# Install or update gom.
 prep-gom:
     which gollama || go install github.com/sammcj/gollama@HEAD
 
+# Link gollama configuration.
 gom-link: prep-gom
     #!/usr/bin/env bash
     gollama -link-lmstudio --dry-run
@@ -201,12 +235,14 @@ gom-link: prep-gom
     gollama -L --dry-run
     read -n 1 -p "Confirm linking ollma models to LMStudio (y/n)? " REPLY && echo && [[ $REPLY =~ ^[Yy]$ ]] && gollama -L
 
+# Reset gollama configuration.
 gom-reset:
     gollama -cleanup
 
 
 # https://github.com/jundot/omlx
 #
+# Install or update ox.
 prep-ox:
     #!/usr/bin/env bash
     if [ ! -d ~/projects/omlx ]; then
@@ -216,6 +252,7 @@ prep-ox:
     fi
     cd ~/projects/omlx && uv sync
 
+# Run Open WebUI in a VM.
 ox-vm VM:
     #!/usr/bin/env bash
     VM_IP=$(lume ls | grep {{VM}} | grep -oE '192\.[0-9]+\.[0-9]+\.[0-9]+')
@@ -223,12 +260,15 @@ ox-vm VM:
     echo "Admin UI: http://$HOST_IP:8000/admin"
     cd ~/projects/omlx && source .venv/bin/activate && omlx serve --host $HOST_IP
 
+# Run the Open WebUI shortcut.
 ox4 *ARGS:
     env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy omlx launch {{ARGS}}
 
+# Install or update rx.
 prep-rx:
     brew install raullenchai/rapid-mlx/rapid-mlx
 
+# Install or update dx.
 prep-dx:
     uv tool install dflash-mlx
 
@@ -237,9 +277,11 @@ prep-dx:
 #
 VISUAL_MODEL := "erwan2/DeepSeek-Janus-Pro-7B"
 
+# Run the local vision model.
 lv:
     ollama run {{VISUAL_MODEL}}
 
+# Install or update exo.
 prep-exo:
     # 1. we need uv venv --python 3.12 --seed
     # 2. we need to install exo from source
@@ -247,6 +289,7 @@ prep-exo:
     # 3. we need to manually install pytorch in the venv
     # 4. when in doubt, run: DEBUG=9 exo --disable-tui
 
+# Install or update tr.
 prep-tr:
     brew install --cask buzz
 
@@ -254,10 +297,12 @@ prep-tr:
 # TOKEN is retrieved on server via:
 # cat /var/lib/gpustack/token
 #
+# Run Goose.
 gs *PARAMS:
     #!/usr/bin/env bash
     uvx --python 3.12 --from 'gpustack[all]' gpustack {{PARAMS}}
 
+# Install or update pl.
 prep-pl:
     #!/usr/bin/env bash
     which plandex || (curl -sL https://plandex.ai/install.sh | bash)
@@ -266,17 +311,20 @@ prep-pl:
     sd 'docker compose' 'docker-compose' start_local.sh
     ./start_local.sh
 
+# Run pl.
 pl PROJ="forest":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
     plandex --semi
 
+# Install or update sg.
 prep-sg:
     #!/usr/bin/env bash
     # https://docs.sglang.ai/start/install.html
     uv pip install sgl-kernel --force-reinstall --no-deps
     uv pip install "sglang[all]>=0.4.3.post2" --find-links https://flashinfer.ai/whl/cu124/torch2.5/flashinfer-python
 
+# Install or update MLX.
 prep-mlx:
     #!/usr/bin/env bash
     # https://kconner.com/2025/02/17/running-local-llms-with-mlx.html
@@ -290,6 +338,7 @@ prep-mlx:
 # just mlx models
 # just mlx import-models
 #
+# Run MLX tooling.
 mlx *PARAMS:
     #!/usr/bin/env bash
     uvx llm mlx {{PARAMS}}
@@ -304,11 +353,13 @@ mlx *PARAMS:
 # llm *PARAMS:
 #     uvx llm {{PARAMS}}
 #
+# Install or update LLM.
 prep-llm:
     uvx llm install llm-docs
     uvx llm install llm-fragments-github
     uvx llm install llm-mlx
 
+# Deploy LLM configuration.
 sync-llm:
     #!/usr/bin/env bash
     dir_llm=`dirname "$(uvx llm logs path)"`
@@ -323,6 +374,7 @@ sync-llm:
 # lms comes with LMStudio: https://github.com/lmstudio-ai/lms
 # I want it for https://github.com/lmstudio-ai/mlx-engine
 #
+# Install or update LMS.
 prep-lms:
     #!/usr/bin/env bash
     npx lmstudio install-cli
@@ -332,14 +384,17 @@ prep-lms:
 # lms load mlx-community/DeepSeek-R1-Distill-Qwen-32B-4bit
 # lms server start
 #
+# Run LM Studio tooling.
 lms *PARAMS:
     #!/usr/bin/env bash
     lms {{PARAMS}}
 
+# Run OmniParser tooling.
 omni *PARAMS:
     #!/usr/bin/env bash
     uvx mlx-omni-server {{PARAMS}}
 
+# Run LLM performance tooling.
 perf *PARAMS:
     # run llm_perf.py using uv with package requests installed
     uv run --with requests llm_perf.py {{PARAMS}}
@@ -348,10 +403,12 @@ perf *PARAMS:
 VLM_MODEL := env("VLM_MODEL", "mlx-community/Qwen2.5-VL-3B-Instruct-4bit")
 VLM_PROMPT := env("VLM_PROMPT", "describe the image as detailed as possible")
 
+# Run VLM.
 vlm IMAGE *PARAMS=" --max-tokens 100 ":
     #!/usr/bin/env bash
     uv run --python 3.12 --with 'mlx-vlm' --with torch python -m mlx_vlm.generate --model '{{VLM_MODEL}}' --prompt '{{VLM_PROMPT}}' --image {{IMAGE}} {{PARAMS}}
 
+# Run Lobe Chat tooling.
 lobe *PARAMS:
     #!/usr/bin/env bash
     docker run -it --rm -p 3210:3210 \
@@ -363,6 +420,7 @@ lobe *PARAMS:
 
 # Not working
 #
+# Install or update scr.
 prep-scr:
     curl -fsSL get.screenpi.pe/cli | sh
 
@@ -374,6 +432,7 @@ prep-scr:
 # --chat
 # --use-aider
 #
+# Run rd.
 rd PROJ="forest" *PARAMS="":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
@@ -382,9 +441,11 @@ rd PROJ="forest" *PARAMS="":
 
 # Not working yet
 #
+# Run document translation tooling.
 dt:
     uv run --python 3.11 --with 'detikzify @ git+https://github.com/potamides/DeTikZify' -m detikzify.webui --light
 
+# Run Kimi-J tooling.
 kj:
     #!/usr/bin/env bash
     CMAKE_ARGS="-DGGML_METAL=on" USE_EMBEDDED_DB="true" uvx --from 'khoj[local]' khoj --help
@@ -396,14 +457,17 @@ kj:
 # --enrich-picture-description
 # --image-export-mode [placeholder|embedded|referenced]
 #
+# Download model or LLM assets.
 dl *PARAMS:
     uvx --with mlx-vlm docling {{PARAMS}}
 
 # DOC could be a local file or an URL
 #
+# Download Markdown documentation.
 dlmd DOC:
     just dl --pipeline vlm --vlm-model smoldocling {{DOC}}
 
+# Install or update probe.
 prep-probe:
     which probe || npm install -g @buger/probe@latest
     which probe-chat || npm install -g @buger/probe-chat@latest
@@ -411,12 +475,14 @@ prep-probe:
 # in `just zsh`, --allow-edit
 # --web
 #
+# Run probe.
 probe *PARAMS="":
     #!/usr/bin/env bash
     export OPENAI_API_URL=$OPENAI_API_BASE
     export MODEL_NAME=$OPENAI_API_MODEL
     probe-chat {{PARAMS}}
 
+# Install or update dw.
 prep-dw:
     #!/usr/bin/env bash
     just clone AsyncFuncAI deepwiki-open
@@ -426,6 +492,7 @@ prep-dw:
     mkdir -p ~/.adalflow
     # https://github.com/AsyncFuncAI/deepwiki-open/issues/20#issuecomment-2857485755
 
+# Run Desktop Commander tooling.
 dw: prep-dw
     #!/usr/bin/env bash
     cd ~/projects/deepwiki-open
@@ -433,12 +500,14 @@ dw: prep-dw
 
 # Not working yet
 #
+# Install or update odw.
 prep-odw:
     #!/usr/bin/env bash
     just clone AIDotNet OpenDeepWiki
     cd ~/projects/OpenDeepWiki
     make build
 
+# Install or update goose.
 prep-goose:
     #!/usr/bin/env bash
     # mkdir -p ~/.config/goose
@@ -449,10 +518,12 @@ prep-goose:
 # goose configure
 # MEMORY_BANK_ROOT="$HOME/.membank" goose session
 #
+# Run goose.
 goose *PARAMS="session":
     #!/usr/bin/env bash
     goose {{PARAMS}}
 
+# Install the MCP toolkit.
 kit-mcp:
     uv run --python 3.11 --with cased-kit python -m kit.mcp
 
@@ -467,10 +538,12 @@ kit-mcp:
 # api_key=YOUR_API_KEY
 # see https://github.com/frdel/agent-zero/issues/326#issuecomment-2679344132
 #
+# Run the Zero setup.
 zero:
     docker pull frdel/agent-zero-run
     docker run --rm -p 50001:80 frdel/agent-zero-run
 
+# Install or update cc.
 prep-cc:
     #!/usr/bin/env bash
     which claude || npm install -g @anthropic-ai/claude-code
@@ -504,6 +577,7 @@ prep-cc:
     }
     EOF
 
+# Install or update ccr.
 prep-ccr:
     #!/usr/bin/env bash
     which ccr || npm install -g @musistudio/claude-code-router
@@ -527,9 +601,11 @@ prep-ccr:
     }
     EOF
 
+# Reset Claude Code MCP config.
 cc-mcp-reset:
     claude mcp list|grep -v -F 'No MCP servers'|awk -F":" '{print $1}'|xargs -n 1 claude mcp remove
 
+# Prepare Claude Code MCP servers for a project.
 prep-cc-mcp PROJ="forest":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
@@ -547,9 +623,11 @@ prep-cc-mcp PROJ="forest":
     # claude mcp add --transport stdio deepwiki-mcp -e DEEPWIKI_REQUEST_TIMEOUT=60000 -- npx -y mcp-deepwiki@latest
     # claude mcp add serena -- uvx --from git+https://github.com/oraios/serena serena-mcp-server --context ide-assistant # --project $(pwd)
 
+# Install or update cu.
 prep-cu:
     which container-use || brew install dagger/tap/container-use || ( curl -fsSL https://raw.githubusercontent.com/dagger/container-use/main/install.sh | bash )
 
+# Install or update cc cu.
 prep-cc-cu:
     #!/usr/bin/env bash
     claude mcp add --scope user container-use -- `which cu` stdio
@@ -558,6 +636,7 @@ prep-cc-cu:
 
 # just cc forest --debug
 #
+# Run ccr.
 ccr PROJ="forest" *PARAMS="":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
@@ -566,14 +645,17 @@ ccr PROJ="forest" *PARAMS="":
 # When running out of premium quota
 # export ANTHROPIC_BASE_URL=http://localhost:15432 ANTHROPIC_AUTH_TOKEN=dummy ANTHROPIC_MODEL=gpt-4.1 ANTHROPIC_SMALL_FAST_MODEL=gpt-4.1 && claude
 #
+# Run cc.
 cc PROJ="forest" *PARAMS="":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
     export ANTHROPIC_BASE_URL=$OPENAI_API_BASE ANTHROPIC_AUTH_TOKEN=$OPENAI_API_KEY ANTHROPIC_MODEL=$OPENAI_API_MODEL ANTHROPIC_SMALL_FAST_MODEL=$OPENAI_API_MODEL_FAST && claude
 
+# Install or update codex.
 prep-codex:
     bun add -g @openai/codex
 
+# Run Codex CLI.
 codex *PARAMS:
     #!/usr/bin/env bash
     export LOCAL_API_KEY=$OPENAI_API_KEY
@@ -582,12 +664,14 @@ codex *PARAMS:
 
 # build failed: FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory
 #
+# Install or update easyds.
 prep-easyds:
     #!/usr/bin/env bash
     just clone ConardLi easy-dataset
     cd ~/projects/easy-dataset
     docker build -t easy-dataset .
 
+# Run EasyDataset.
 easyds:
     #!/usr/bin/env bash
     mkdir -p ~/.easy-dataset
@@ -596,6 +680,7 @@ easyds:
 # tutorial intro
 # https://docs.marimo.io/guides/package_management/inlining_dependencies/
 #
+# Run mm.
 mm *PARAMS="edit --sandbox":
     uvx marimo {{PARAMS}}
 
@@ -603,37 +688,47 @@ mm *PARAMS="edit --sandbox":
 # funnydspy
 # math-equivalence==0.0.0 (from git+https://github.com/hendrycks/math.git@357963a7f5501a6c1708cf3f3fb0cdf525642761)
 
+# Install or update amp.
 prep-amp:
     which amp || npm install -g @sourcegraph/amp
     # login, say no to re-login if already logged in
     yes n|amp login
 
+# Install or update bwrap.
 prep-bwrap:
     which bwrap || brew install bubblewrap
 
+# Install or update claude.
 prep-claude:
     bun add -g @anthropic-ai/claude-code
 
+# Install or update gemini.
 prep-gemini:
     bun add -g @google/gemini-cli
 
+# Install or update oc.
 prep-oc:
     bun add -g opencode-ai
     # mkdir -p ~/.config/opencode
     # dotfiles/bin/render_yaml.py --json dotfiles/.config/opencode/opencode.in.yaml ~/.config/opencode/opencode.json
     # just check-oc
 
+# Install or update pi.
 prep-pi:
     bun add -g @earendil-works/pi-coding-agent
 
 # AGENT-NOTE: Delegates to improved link-conf which handles re-entry safely
 # (rips symlinks, backs up real files with timestamp suffix).
+#
+# Prepare OpenCode for DeepSeek V3.1.
 prep-oc-ds4: prep-oc
     just link-conf opencode/opencode-ds4.json opencode/opencode.json
     echo "Configured opencode to use DeepSeek V4 Pro (reasoningEffort: high)"
     echo "!!! Run 'opencode auth login' to authenticate !!!"
 
 # AGENT-NOTE: Symlinks pi settings with re-entry safety (rips symlinks, backs up real files).
+#
+# Prepare pi for DeepSeek V3.1.
 prep-pi-ds4: prep-pi
     #!/usr/bin/env bash
     set -e
@@ -652,6 +747,7 @@ prep-pi-ds4: prep-pi
     echo "Configured pi to use DeepSeek V4 Pro (thinking: high)"
     echo "!!! Run 'pi' then type '/login' and select DeepSeek to authenticate !!!"
 
+# Check OpenCode setup.
 check-oc:
     #!/usr/bin/env bash
     set -e
@@ -663,18 +759,23 @@ check-oc:
 # use `opencode auth login` to log into Github Copilot
 # use `opencode run -m github-copilot/claude-3.5-sonnet --print-logs Hi` for a first run, which runs bun install that might take a while
 
+# Clone OpenCode sources.
 clone-oc:
     just clone sst opencode
 
+# Install or update at.
 prep-at:
     which agenttrace || go install github.com/luoyuctl/agenttrace/cmd/agenttrace@latest
 
+# Install or update ds.
 prep-ds:
     bun add -g deepseek-tui
 
+# Install or update uz.
 prep-uz:
     which uzi || go install github.com/devflowinc/uzi@latest
 
+# Install or update q CLI.
 @prep-q:
     which q || brew install amazon-q
     which q || sudo ln -s "/Applications/Amazon Q.app/Contents/MacOS/q" /usr/local/bin/q
@@ -685,31 +786,38 @@ prep-uz:
     echo "Login first: q login"
     echo "Then chat: q chat"
 
+# Run init q.
 init-q PROJ="forest":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
     q chat --no-interactive "/context add AGENTS.md"
     # q chat --no-interactive '/hooks add --trigger per_prompt --command "cat AGENTS.md" AGENTS.md'
 
+# Run q CLI.
 q:
     q chat --trust-tools=fs_read,fs_write "ALWAYS follow AGENTS.md"
 
+# Install or update kiro.
 prep-kiro:
     which kiro-cli || brew install kiro-cli
 
+# Install or update cbc.
 prep-cbc: prep-node
     which cbc || npm install -g @tencent-ai/codebuddy-code
 
 # requires too many permissions to my GitHub account, rejected
 #
+# Install or update kb.
 prep-kb:
     npx -y vibe-kanban
 
 # backlog init <project name>
 # backlog browser
 #
+# Install or update backlog.
 prep-backlog:
     bun i -g backlog.md
 
+# List backlog TODOs.
 todos:
     backlog browser # --no-open

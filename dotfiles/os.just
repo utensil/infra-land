@@ -5,6 +5,7 @@
 # Then, maybe run: just mk-act
 # So the work can be continued in the Ubuntu container
 #
+# Create or enter the CentOS Distrobox container.
 bt-centos:
     #!/usr/bin/env bash
     yes|sudo yum groupinstall 'Development Tools'
@@ -22,6 +23,7 @@ bt-centos:
 # Copy and paste to run as root, because we have no just at this point
 # Next, run: just prep-act
 #
+# Create or enter the Ubuntu Distrobox container.
 bt-ubuntu:
     #!/usr/bin/env bash
     apt update
@@ -32,9 +34,11 @@ bt-ubuntu:
     mise use -g just
     echo 'eval "$(~/.local/bin/mise activate bash)"' >> ~/.bashrc
 
+# Enter a running Distrobox container.
 bt CONTAINER_NAME:
     echo '#!/usr/bin/env bash\napt update\napt install -y build-essential curl file git sudo neovim\ncurl https://mise.run | sh\neval "$(~/.local/bin/mise activate bash)"\nmise trust\nmise use -g just\necho 'eval \"$(~/.local/bin/mise activate bash)\"' >> ~/.bashrc' | docker exec -i {{CONTAINER_NAME}} bash -s
 
+# Install or update ubuntu.
 prep-ubuntu:
     #!/usr/bin/env bash
     sudo apt update
@@ -48,6 +52,7 @@ prep-ubuntu:
     just prep-rc
     sudo apt install -y zsh
 
+# Install or update brew.
 [linux]
 prep-brew:
     yes|/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -72,6 +77,7 @@ prep-brew:
 # Error: You have not agreed to the Xcode license. Please resolve this by running:
 #   sudo xcodebuild -license accept
 
+# Install or update user.
 prep-user USER:
     #!/usr/bin/env bash
     set -e
@@ -81,6 +87,7 @@ prep-user USER:
     passwd {{USER}}
     echo "{{USER}} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
+# Install or update LVIM in ZSH.
 prep-lvim-in-zsh:
     #!/usr/bin/env bash
     just prep-lvim
@@ -92,6 +99,7 @@ prep-lvim-in-zsh:
 # 3. Enter zsh
 # 4. Copy and paste to run, because we have no just at this point
 #
+# Bootstrap macOS tooling and configs.
 bt-mac:
     #!/usr/bin/env bash
     xcode-select --install
@@ -109,6 +117,7 @@ bt-mac:
     just prep-zsh
     echo "Now, open ghostty and run `just init-mac`"
 
+# Initialize this Mac with the default dotfiles setup.
 init-mac:
     just prep-font
     just prep-gt
@@ -131,6 +140,7 @@ init-mac:
 
 # see https://macos-defaults.com/ and https://github.com/Swiss-Mac-User/macOS-scripted-setup and https://github.com/mathiasbynens/dotfiles/blob/main/.macos
 #
+# Install or update def.
 prep-def:
     #!/usr/bin/env bash
     set -e
@@ -212,22 +222,26 @@ prep-def:
 # direction keys to place the window in 8 directions, space to maximize, enter to center
 # It's so smooth
 #
+# Install or update loop.
 prep-loop:
     #!/usr/bin/env bash
     [ -d /Applications/Loop.app ] || brew install loop
 
+# Install or update switch.
 prep-switch:
     [ -d /Applications/InstantSpaceSwitcher.app ] || brew install --cask jurplel/tap/instant-space-switcher
     just uq /Applications/InstantSpaceSwitcher.app
 
 # superceded by prep-switch
 #
+# Install or update space.
 prep-space:
     #!/usr/bin/env bash
     [ -d /Applications/FlashSpace.app ] || brew install flashspace
 
 ## Networking
 
+# Install or update proxy env.
 prep-proxy-env:
     #!/usr/bin/env bash
     set -e
@@ -236,12 +250,14 @@ prep-proxy-env:
     echo "HTTP_PROXY=$proxy_url" >> .env
     echo "HTTPS_PROXY=$proxy_url" >> .env
 
+# Install or update proxy UI.
 prep-proxy-ui:
     # docker run --rm -it -p 5080:80 dockerproxy.net/haishanh/yacd
     docker run --rm -it -p 5080:80 ghcr.io/haishanh/yacd:master
 
 ## iOS
 
+# Install or update iback.
 prep-iback:
     [ -d /Applications/Phosphor.app ] || (brew tap momenbasel/phosphor && brew install --cask phosphor)
     # requires installing into system python

@@ -3,6 +3,8 @@
 # Affected versions: v1.82.7 and v1.82.8 (published 2026-03-24)
 
 # Reference: https://docs.litellm.ai/blog/security-update-march-2026
+#
+# Audit LiteLLM security guidance.
 audit-litellm:
     #!/usr/bin/env bash
     set -e

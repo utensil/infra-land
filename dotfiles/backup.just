@@ -2,11 +2,13 @@
 
 # https://www.fuse-t.org/
 #
+# Install FUSE-T.
 prep-fuse-t:
     brew tap macos-fuse-t/homebrew-cask
     brew install fuse-t
     brew install fuse-t-sshfs
 
+# Install VeraCrypt.
 [linux]
 prep-vera:
     #!/usr/bin/env bash
@@ -28,30 +30,37 @@ prep-vera:
     # veracrypt --text -mnokernelcrypto --password=test --non-interactive ~/projects/forest/output/test.tc /mnt/test
 
 # Install VeraCrypt that works with FUSE-T (on Mac)
+# Install VeraCrypt.
 [macos]
 prep-vera:
     which veracrypt || brew install --cask veracrypt-fuse-t
 
 # Install VeraCrypt that works with macFUSE (on Mac)
+# Install VeraCrypt with kernel FUSE support.
 [macos]
 prep-vera-kernel:
     which veracrypt || brew install --cask veracrypt
 
+# Mount a VeraCrypt volume.
 [macos]
 vera VOLUME MNT *PARAMS:
     veracrypt --text {{VOLUME}} {{MNT}} # --non-interactive --password=THE_PASSWORD
 
+# Mount a VeraCrypt volume.
 [linux]
 vera VOLUME MNT *PARAMS:
     mkdir -p {{MNT}}
     veracrypt --text --pim=0 --keyfiles="" --protect-hidden=no -m=nokernelcrypto {{PARAMS}} {{VOLUME}} {{MNT}}
 
+# Mount a VeraCrypt volume read-only.
 vera-ro VOLUME MNT:
     just vera {{VOLUME}} {{MNT}} --mount-options=ro
 
+# Unmount a VeraCrypt mount.
 vera-off MNT:
     veracrypt --text -d {{MNT}}
 
+# Test access to an SMB path.
 try-smb PATH:
     #!/usr/bin/env bash
     # -d
@@ -74,9 +83,11 @@ try-smb PATH:
     # test with: smbclient //127.0.0.1/share -U foo
     # Mac finder not working
 
+# Install or update SMB CLI.
 prep-smb-cli:
     which smbclient || brew install samba
 
+# Install WebDAV mount tools.
 prep-dav:
     #!/usr/bin/env bash
     set -e
@@ -84,6 +95,7 @@ prep-dav:
     echo "davfs2 installed. Version:"
     davfs2 --version || true
 
+# Run DAV.
 dav URL MNT="/mnt/dav":
     #!/usr/bin/env bash
     # This task is intended to be run inside the container.
@@ -96,6 +108,7 @@ dav URL MNT="/mnt/dav":
     echo "Listing files in mount point:"
     ls -l {{MNT}}
 
+# Run DAV off.
 dav-off MNT="/mnt/dav":
     #!/usr/bin/env bash
     # Unmount the WebDAV mount point (default: /mnt/dav)
@@ -104,6 +117,7 @@ dav-off MNT="/mnt/dav":
     umount {{MNT}}
     echo "Unmounted {{MNT}}."
 
+# Run DAV ro.
 dav-ro URL MNT="/mnt/dav":
     #!/usr/bin/env bash
     # Mount the WebDAV share read-only. Prompts for credentials interactively.
@@ -115,6 +129,7 @@ dav-ro URL MNT="/mnt/dav":
     echo "Listing files in mount point:"
     ls -l {{MNT}}
 
+# Install restic.
 prep-rest:
     #!/usr/bin/env bash
     # which restic || brew install restic
@@ -123,6 +138,7 @@ prep-rest:
     brew services restart backrest
     echo "visit http://127.0.0.1:9898"
 
+# Mount a restic repository.
 mnt-rest REPO:
     #!/usr/bin/env bash
     mkdir -p ~/.mnt/{{REPO}}
@@ -131,20 +147,24 @@ mnt-rest REPO:
 
 export DREST_HOME := join(home_directory(), ".drest")
 
+# Install or update drest.
 prep-drest:
     docker pull garethgeorge/backrest:latest
     mkdir -p {{DREST_HOME}}/.backrest/config
     mkdir -p {{DREST_HOME}}/.backrest/data
     mkdir -p {{DREST_HOME}}/.backrest/cache
 
+# Run drest.
 drest:
     # echo $DREST_HOME
     echo "Visit http://127.0.0.1:19898"
     docker run --rm -p 19898:9898 -e BACKREST_PORT=9898 -e BACKREST_DATA=/data -e XDG_CACHE_HOME=/cache -v $DREST_HOME/.backrest/config:/.config/backrest -v $DREST_HOME/.backrest/data:/data -v $DREST_HOME/.backrest/cache:/cache garethgeorge/backrest:latest
 
+# Install Kopia.
 prep-kopia:
     which kopia || (brew install kopia; brew install --cask kopiaui)
 
+# Install git-annex.
 prep-annex:
     which git-annex || brew install git-annex
     # brew services start git-annex

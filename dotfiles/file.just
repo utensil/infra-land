@@ -1,5 +1,6 @@
 ## File
 
+# Run tree.
 tree DIR="." LEVEL="1":
     eza --git -T -L {{LEVEL}} --hyperlink {{DIR}}
 
@@ -17,6 +18,7 @@ tree DIR="." LEVEL="1":
 # D - delete
 # cc - copy file path; cd - copy directory; cf - copy filename; cn - copy filename w/o ext
 #
+# Run yazi.
 yazi DIR="$HOME/projects":
     #!/usr/bin/env bash
     EDITOR=hx yazi {{DIR}}
@@ -32,6 +34,7 @@ yazi DIR="$HOME/projects":
 #     pp - print file path, useful for `cmd $(br)`, don't hit enter, helix won't show, you need to type `:q` blindly to quit helix
 #     up - go to parent
 #
+# Install broot.
 prep-br:
     which broot || brew install broot
     mkdir -p ~/.config/broot/
@@ -53,15 +56,18 @@ prep-br:
 # e.g. Cmd+Opt+G to lauch Ghostty from the current directory
 # use the first letter to copy, move, rename, new folder, trash, delete etc.
 #
+# Install file comparison tools.
 prep-file:
     #!/usr/bin/env bash
     [ -d /Applications/Marta.app ] || brew install --cask marta
     which marta || (sudo mkdir -p /usr/local/bin/ && sudo ln -s /applications/marta.app/contents/resources/launcher /usr/local/bin/marta) || true
 
+# Compare two files.
 file LEFT RIGHT:
     #!/usr/bin/env bash
     marta --new-window {{LEFT}} {{RIGHT}}
 
+# Open iCloud Drive.
 icloud:
     just file '~/Downloads' '~/Library/Mobile\ Documents/com~apple~CloudDocs'
 
@@ -70,6 +76,8 @@ icloud:
 # It's POC only, as this is outdated
 #
 # POC to install FreeFileSync (outdated)
+#
+# Install FreeFileSync.
 prep-ffs:
     # According to the issue, as long as you open the download page, the following download will pass for a few days
     open https://freefilesync.org/download.php
@@ -77,9 +85,11 @@ prep-ffs:
 
 # https://bhoot.dev/2025/cp-dot-copies-everything/
 #
+# Copy a file or directory safely.
 cp SRC DST:
     cp -R {{SRC}}/. {{DST}}
 
+# Install rsync helpers.
 prep-rsync:
     which rsync || apt install rsync || sudo apt install rsync || brew install rsync
     just prep-uv
@@ -96,15 +106,19 @@ prep-rsync:
 # --copy-links - if wish to copy symlinked target file
 # works as expected if both dirs end with /
 #
+# Run rsync.
 rsync SRC DST *PARAMS="--dry-run":
     uvx rsyncy --perms --times --recursive --verbose --partial {{PARAMS}} {{SRC}} {{DST}}
 
+# Install jwalk.
 prep-jw:
     which jw || cargo install --git https://github.com/utensil/jw --branch fixed-order jw
     # (yes|cargo binstall jw)
 
 # AGENT-NOTE: check-dirs now writes hash files to /tmp/jw/ with timestamped, descriptive names (e.g. /tmp/jw/<timestamp>-left-<leftdirname>.hash.jw)
 # This avoids polluting or failing on read-only source/dest dirs, and is safe for diffing.
+#
+# Run check dirs.
 check-dirs SRC DST *PARAMS="-l -p":
     #!/usr/bin/env bash
     # AGENT-NOTE: Writes hash files to /tmp/jw/ to avoid polluting or failing on read-only source/dest dirs
@@ -114,9 +128,11 @@ check-dirs SRC DST *PARAMS="-l -p":
 # lms sync -n SRC DST
 # -n - no delete
 #
+# Install local sync tooling.
 prep-lms-sync:
     which lms || cargo install lms
 
+# Synchronize two directories.
 sync-dirs SRC DST:
     #!/usr/bin/env bash
     set -e
@@ -124,12 +140,15 @@ sync-dirs SRC DST:
     # lms sync -n {{SRC}} {{DST}}
     just check-dirs {{SRC}} {{DST}} -l -p
 
+# Install termscp.
 prep-termscp:
     which termscp || brew install termscp
 
+# Run pathfind.
 pathfind:
     npx -y pagefind --site output --serve --root-selector 'article > section'
 
+# Install ast-grep.
 prep-ag:
     #!/usr/bin/env bash
     which ast-grep || brew install ast-grep
@@ -138,21 +157,26 @@ prep-ag:
 
 # just ag '\query{$$$}'
 #
+# Run ag.
 ag PAT LANG="forester" DIR="trees":
     ast-grep run --config dotfiles/.config/ast-grep/sgconfig.yml --lang {{LANG}} -p '{{PAT}}' {{DIR}}
 
+# Install Semgrep.
 prep-semgrep:
     which semgrep || brew install semgrep
 
+# Run a Semgrep scan.
 semscan:
     semgrep scan --config "p/default" --config "p/trailofbits"
 
 
 # https://www.howtogeek.com/803598/app-is-damaged-and-cant-be-opened/
 #
+# Remove quarantine attributes from an app.
 uq APP_PATH:
     xattr -d com.apple.quarantine "{{APP_PATH}}"
 
+# Remove a file or directory safely.
 remove FILE_OR_DIR:
     #!/usr/bin/env bash
     TEMP_LOCATION="/tmp/$(whoami)-$(date +%s)-$(head -c 5 /dev/random|xxd -ps)"

@@ -1,5 +1,6 @@
 ## Browser
 
+# Install or update view.
 prep-view:
     # awrit installation usually fails with some warning
     which awrit || brew install chase/tap/awrit || true
@@ -9,15 +10,18 @@ prep-view:
 # - flashes for React and WebGL
 # - outputs code when mouse moves after exited by ctrl+c
 #
+# Run view.
 view URL="http://localhost:1314/":
     awrit {{URL}}
 
+# Install or update cha.
 prep-cha:
     which cha || brew install chawan
     just prep-rdrview
     mkdir -p ~/.config/chawan
     cp -f dotfiles/.config/chawan/config.toml ~/.config/chawan/config.toml
 
+# Install or update rdrview.
 prep-rdrview:
     #!/usr/bin/env bash
     just clone eafer rdrview
@@ -50,11 +54,13 @@ prep-rdrview:
 # y  copy selected text
 # right click menu, including select and copy text
 #
+# Open a URL with charm tooling.
 cha URL:
     cha {{URL}}
 
 # hygg: a minimalist terminal-based document reader supporting PDFs, EPUBs, and text files with vim-like navigation
 #
+# Install or update hygg.
 prep-hygg:
     which hygg || cargo install --locked hygg
 
@@ -73,12 +79,15 @@ prep-hygg:
 # ? - help
 # q - quit
 #
+# Install or update lynx.
 prep-lynx:
     which lynx || brew install lynx
 
+# Install or update w3m.
 prep-w3m:
     which w3m || brew install w3m
 
+# Install or update servo.
 prep-servo:
     # softwareupdate --install-rosetta --agree-to-license
     brew install --cask servo
@@ -90,6 +99,7 @@ prep-servo:
 # can't recognize small button with icon
 # support forest xml/xslt
 #
+# Capture a Carbon page.
 carbon URL:
     docker run --rm -ti fathyb/carbonyl {{URL}}
 
@@ -104,15 +114,18 @@ carbon URL:
 # h - explain the last ?
 # qt - quit
 #
+# Install or update ed.
 prep-ed:
     which edbrowse || brew install edbrowse
 
+# Run Postman.
 postman:
     # uv tool install --python 3.12 posting
     uvx --python 3.12 posting
 
 # https://blog.stulta.dev/posts/annoying_json/
 #
+# Install or update bjn.
 prep-bjn:
     which xh || brew install xh
     which jo || brew install jo
@@ -120,6 +133,7 @@ prep-bjn:
 # e.g. just bjn "some_key[sub_key]=its value" "another_key=another value"
 # https://github.com/casey/just?tab=readme-ov-file#positional-arguments
 #
+# Run Beejay tooling.
 [positional-arguments]
 bjn *PARAMS:
     #!/usr/bin/env bash
@@ -128,9 +142,11 @@ bjn *PARAMS:
 
 ## Info and chat
 
+# Install or update IRC.
 prep-irc:
     which weechat || brew install weechat
 
+# Open IRC for a channel.
 irc CHANNEL:
     weechat irc://utensil@irc.libera.chat/#{{CHANNEL}}
 
@@ -138,9 +154,11 @@ irc CHANNEL:
 # Login via SSO on element
 # Verify by `:verify`, comparing emoji on element, and copy-paste the `:verify confirm USER/DEVICE` command on iamb
 #
+# Install or update im.
 prep-im:
     which iamb || brew install iamb
 
+# Install or update hkt archived.
 prep-hkt-archived:
     #!/usr/bin/env bash
     # Usage:
@@ -164,6 +182,7 @@ prep-hkt-archived:
     # An account is needed
     # neonmodem connect --type lemmy --url https://lemmy.ml || true
 
+# Install or update hk.
 prep-hk:
     #!/usr/bin/env bash
     which hackernews_tui || cargo install --git https://github.com/utensil/hackernews-TUI --branch proxy hackernews_tui --locked
@@ -171,6 +190,8 @@ prep-hk:
 
 # -i ITEM
 # Open HackerNews TUI
+#
+# Open Hacker News TUI.
 hk *PARAMS:
     hackernews_tui {{PARAMS}}
 
