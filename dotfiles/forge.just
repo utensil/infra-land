@@ -1,6 +1,6 @@
 ## Git
 
-# Install or update SSH agent.
+# Configure SSH to add keys to the agent.
 prep-ssh-agent:
     #!/usr/bin/env bash
     set -e
@@ -36,11 +36,11 @@ prep-ssh-agent:
     echo "SSH agent ready. Keys loaded:"
     ssh-add -l
 
-# Install or update sshpass.
+# Install sshpass.
 prep-sshpass:
     which sshpass || brew install hudochenkov/sshpass/sshpass
 
-# Install or update GIT.
+# Install GitHub CLI and configure Git defaults.
 prep-git:
     #!/usr/bin/env bash
     which git || brew install git
@@ -79,7 +79,7 @@ prep-git:
     gh auth setup-git
     echo 'Remember to run `just prep-delta` for better lazygit experience'
 
-# Install or update delta.
+# Install delta and configure Git diff paging.
 prep-delta:
     which delta || brew install git-delta
     git config --global core.pager "delta"
@@ -94,34 +94,34 @@ prep-delta:
     mkdir -p ~/.config/lazygit
     cp -f dotfiles/.config/lazygit/config.yml ~/.config/lazygit/config.yml
 
-# Install or update hunk.
+# Install hunkdiff and configure Git/Lazygit paging.
 prep-hunk:
     which hunk || bun add -g hunkdiff
     git config --global core.pager "hunk pager --mode stack --pager --wrap"
     mkdir -p ~/.config/lazygit
     cp -f dotfiles/.config/lazygit/config.yml ~/.config/lazygit/config.yml
 
-# Install or update resolve.
+# Install and configure mergiraf for jj conflict resolution.
 prep-resolve:
     which mergiraf || brew install mergiraf
     # https://mergiraf.org/usage.html
     git config --global merge.conflictStyle|grep zdiff3
     jj config list --include-defaults merge-tools | grep mergiraf
 
-# Run merge conflict resolution tooling.
+# Resolve jj conflicts with mergiraf.
 resolve:
     jj status && jj resolve --tool mergiraf
 
-# Run GIT.
+# Open Lazygit in a project.
 git PROJ="forest" *PARAMS="":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}} && lazygit {{PARAMS}}
 
-# Install or update gitu.
+# Install the gitu terminal Git UI.
 prep-gitu:
     which gitu || cargo install gitu --locked
 
-# Install or update ghui.
+# Install the ghui GitHub UI.
 prep-ghui:
     bun add -g @kitlangton/ghui
 
@@ -181,12 +181,12 @@ link-conf CONF DST="":
 
 # -w to open in browser
 #
-# Run actions.
+# View GitHub Actions workflows for a project.
 actions PROJ="forest" *PARAMS="":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}} && gh workflow view {{PARAMS}}
 
-# Install or update date.
+# Install git-backdate helper.
 prep-date:
     which git-backdate || (curl https://raw.githubusercontent.com/rixx/git-backdate/main/git-backdate > /usr/local/bin/git-backdate && chmod +x /usr/local/bin/git-backdate)
     which gdate || brew install coreutils
@@ -199,7 +199,7 @@ date: prep-date
     echo "Rewriting history to distribute commits between ${BEGIN_DATE} and ${END_DATE}"
     git backdate origin/main "${BEGIN_DATE}..${END_DATE}" --no-business-hours
 
-# Install or update gitlog.
+# Install gitlog helper script.
 prep-gitlog:
     which serie || brew install lusingander/tap/serie
 
@@ -212,7 +212,7 @@ prep-gitlog:
 gitlog:
     serie
 
-# Install or update zizmor.
+# Install zizmor workflow linter.
 prep-zizmor:
     which zizmor || brew install zizmor
 
@@ -271,7 +271,7 @@ lint-gh *PARAMS : prep-zizmor
 # log -r <revset> - check your understanding of <revset> syntax: https://github.com/mmlb/jj-vcs-jj/blob/main/docs/revsets.md
 # file list <fileset> - check your understanding of <fileset> syntax: https://github.com/mmlb/jj-vcs-jj/blob/main/docs/filesets.md
 #
-# Install or update JJ.
+# Install jj and configure repo aliases.
 prep-jj:
     which jj || brew install jj
     mkdir -p ~/.config/jj
@@ -280,20 +280,20 @@ prep-jj:
     jj config set --user user.email "$(git config --get user.email)"
     jj config list --no-pager
 
-# Install or update jjui.
+# Install a jj terminal UI.
 prep-jjui:
     # which lazyjj || brew install lazyjj
     which jjui || brew install jjui
     mkdir -p ~/.config/jjui
     cp -f dotfiles/.config/jjui/config.toml ~/.config/jjui/config.toml
 
-# Run init JJ.
+# Initialize jj in a project and import Git refs.
 init-jj PROJ="forest" *PARAMS="":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
     jj status || jj git init --colocate
 
-# Run push.
+# Push a project branch with Git.
 push PROJ="forest" BRANCH="main":
     #!/usr/bin/env bash
     cd ~/projects/{{PROJ}}
@@ -304,11 +304,11 @@ push PROJ="forest" BRANCH="main":
     jj psb {{BRANCH}} --remote berg
     which rad && git push rad main
 
-# Run jjpr.
+# Open jj pull-request helper for ocaml-forester.
 jjpr PROJ="ocaml-forester":
     cd ~/projects/{{PROJ}} && jj prw
 
-# Run jjprp.
+# Open jj pull-request publisher for ocaml-forester.
 jjprp PROJ="ocaml-forester":
     cd ~/projects/{{PROJ}} && jj pscw
 
@@ -321,11 +321,11 @@ jjprp PROJ="ocaml-forester":
 # so I use the old-fashion
 # `git send-email --to="~jonsterling/forester-devel@lists.sr.ht" HEAD^`
 #
-# Install or update mailp.
+# Install mailing-list patch tooling.
 prep-mailp:
     which pyonji || go install 'git.sr.ht/~emersion/pyonji@latest'
 
-# Run mailp.
+# Prepare patch email workflow for ocaml-forester.
 mailp PROJ="ocaml-forester":
     cd ~/projects/{{PROJ}} && pyonji
 
@@ -333,14 +333,14 @@ mailp PROJ="ocaml-forester":
 # then
 # ~jonsterling/forester-devel@lists.sr.ht
 #
-# Run mailpp.
+# Send a patch email for ocaml-forester.
 mailpp MAIL PROJ="ocaml-forester":
     cd ~/projects/{{PROJ}} && git send-email --to="{{MAIL}}" HEAD^
 
 # the idea is to use this for id of garden notes
 # i.e. the id of a random note is the short jj change id when it was first added
 #
-# Run jjid.
+# Print the jj change id for a revset.
 @jjid REVSET="@":
     jj log -r {{REVSET}} -T 'change_id.short()' --no-graph
 
@@ -363,7 +363,7 @@ mailpp MAIL PROJ="ocaml-forester":
 #
 # recover the delegate node identity: backup and recover keys to ~/.radicle/keys
 #
-# Install or update rad.
+# Install Radicle and configure identity.
 prep-rad:
     #!/usr/bin/env bash
     set -e
@@ -381,7 +381,7 @@ prep-rad:
 # prep-rad-gui:
 #     curl --output ~/Downloads/radicle-desktop-aarch64-latest.dmg https://files.radicle.xyz/releases/radicle-desktop/latest/radicle-desktop-aarch64.dmg && open ~/Downloads/radicle-desktop-aarch64-latest.dmg
 
-# Install or update rad gui.
+# Install Radicle desktop app.
 prep-rad-gui:
     #!/usr/bin/env bash
     set -e
@@ -391,11 +391,11 @@ prep-rad-gui:
     npm install
     npm run tauri build
 
-# Install or update rad TUI.
+# Install Radicle terminal UI.
 prep-rad-tui:
     cargo install --force --locked --git https://seed.radicle.xyz/z39mP9rQAaGmERfUMPULfPUi473tY.git
 
-# Install or update rad HTTPD.
+# Install the Radicle HTTP daemon.
 [macos]
 prep-rad-httpd:
     #!/usr/bin/env bash
@@ -412,7 +412,7 @@ prep-rad-httpd:
 
 # push with git push rad main
 #
-# Run init rad.
+# Initialize a project as a Radicle repository.
 init-rad REPO="forest" DEFAULT_BRANCH="main":
     #!/usr/bin/env bash
     cd ~/projects/{{REPO}}
@@ -457,19 +457,19 @@ rad-web:
 
 ## Code forge
 
-# Install or update fj.
+# Install Forgejo CLI/server tooling.
 prep-fj:
     docker pull data.forgejo.org/forgejo/forgejo:10
 
 FJ_DIR :=  join(home_directory(), ".forgejo")
 
-# Run Forgejo.
+# Start the local Forgejo instance.
 fj:
     #!/usr/bin/env bash
     mkdir -p {{FJ_DIR}}/ssh
     docker run --rm -it -e USER_UID=$(id -u) -e USER_GID=$(id -g) --env-file .env -p 23000:3000 -p 2222:22 -v {{FJ_DIR}}:/data -v /etc/timezone:/etc/timezone:ro -v /etc/localtime:/etc/localtime:ro data.forgejo.org/forgejo/forgejo:10
 
-# Install or update filter repo.
+# Install git-filter-repo.
 prep-filter-repo:
     which git-filter-repo || brew install git-filter-repo
 
@@ -483,7 +483,7 @@ prep-filter-repo:
 # Example: just migrate-dir ~/repos/source mydir ~/repos/dest newdir
 # Example: just migrate-dir ~/repos/source mydir ~/repos/dest . ""
 #
-# Run migrate dir.
+# Move one directory between repositories with history.
 migrate-dir REPO_A DIR_A REPO_B DIR_B DRY_RUN="--dry-run":
     #!/usr/bin/env bash
     set -e
@@ -565,7 +565,7 @@ migrate-dir REPO_A DIR_A REPO_B DIR_B DRY_RUN="--dry-run":
 # Example: just mirror-dirs ~/repos/mine ~/repos/cog-land dirs.txt
 # Example: just mirror-dirs ~/repos/mine ~/repos/cog-land dirs.txt ""
 #
-# Run mirror dirs.
+# Mirror a list of directories between repositories.
 mirror-dirs REPO_SRC REPO_DST DIRS_FILE DRY_RUN="--dry-run":
     #!/usr/bin/env bash
     set -e
@@ -772,7 +772,7 @@ mirror-dirs REPO_SRC REPO_DST DIRS_FILE DRY_RUN="--dry-run":
 #         -e JOSH_REMOTE=https://github.com \
 #         dockerproxy.net/joshproject/josh-proxy:latestS
 #
-# Run the Josh proxy.
+# Start a Josh proxy for repository filtering.
 josh-proxy:
     #!/usr/bin/env bash
     mkdir -p ~/.josh
@@ -780,7 +780,7 @@ josh-proxy:
     cd ~/projects/josh/josh-proxy
     cargo run -- --port 63000 --remote https://github.com --local ~/.josh
 
-# Run Josh against a repository directory.
+# Serve a filtered Josh view of a repository directory.
 josh WHERE USER REPO DIR:
     #!/usr/bin/env bash
     cd ~/projects/

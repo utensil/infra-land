@@ -8,7 +8,7 @@ default:
 
 # Update /etc/hosts for all stacks
 #
-# Install or update hosts.
+# Render homelab host entries for the configured IP.
 prep-hosts ip="127.0.0.1":
     uv run prep_homelab.py {{ip}}
 
@@ -44,7 +44,7 @@ trust-ca:
 
 # Remove the Caddy root CA certificate from trust store
 #
-# Remove trust for the local Caddy CA.
+# Remove the Caddy local root CA from system trust.
 untrust-ca:
     #!/usr/bin/env bash
     cert="${PODS_HOME}/caddy/data/caddy/pki/authorities/local/root.crt"

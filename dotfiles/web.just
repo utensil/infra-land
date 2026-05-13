@@ -1,6 +1,6 @@
 ## Browser
 
-# Install or update view.
+# Install awrit browser opener.
 prep-view:
     # awrit installation usually fails with some warning
     which awrit || brew install chase/tap/awrit || true
@@ -10,18 +10,18 @@ prep-view:
 # - flashes for React and WebGL
 # - outputs code when mouse moves after exited by ctrl+c
 #
-# Run view.
+# Open a URL with awrit.
 view URL="http://localhost:1314/":
     awrit {{URL}}
 
-# Install or update cha.
+# Install Chawan and copy browser config.
 prep-cha:
     which cha || brew install chawan
     just prep-rdrview
     mkdir -p ~/.config/chawan
     cp -f dotfiles/.config/chawan/config.toml ~/.config/chawan/config.toml
 
-# Install or update rdrview.
+# Build rdrview and install its libxml dependency.
 prep-rdrview:
     #!/usr/bin/env bash
     just clone eafer rdrview
@@ -60,7 +60,7 @@ cha URL:
 
 # hygg: a minimalist terminal-based document reader supporting PDFs, EPUBs, and text files with vim-like navigation
 #
-# Install or update hygg.
+# Install hygg browser.
 prep-hygg:
     which hygg || cargo install --locked hygg
 
@@ -79,15 +79,15 @@ prep-hygg:
 # ? - help
 # q - quit
 #
-# Install or update lynx.
+# Install Lynx text browser.
 prep-lynx:
     which lynx || brew install lynx
 
-# Install or update w3m.
+# Install w3m text browser.
 prep-w3m:
     which w3m || brew install w3m
 
-# Install or update servo.
+# Install Servo and clear quarantine.
 prep-servo:
     # softwareupdate --install-rosetta --agree-to-license
     brew install --cask servo
@@ -114,18 +114,18 @@ carbon URL:
 # h - explain the last ?
 # qt - quit
 #
-# Install or update ed.
+# Install edbrowse.
 prep-ed:
     which edbrowse || brew install edbrowse
 
-# Run Postman.
+# Open Posting as a terminal API client.
 postman:
     # uv tool install --python 3.12 posting
     uvx --python 3.12 posting
 
 # https://blog.stulta.dev/posts/annoying_json/
 #
-# Install or update bjn.
+# Install xh and jo for JSON request shaping.
 prep-bjn:
     which xh || brew install xh
     which jo || brew install jo
@@ -133,7 +133,7 @@ prep-bjn:
 # e.g. just bjn "some_key[sub_key]=its value" "another_key=another value"
 # https://github.com/casey/just?tab=readme-ov-file#positional-arguments
 #
-# Run Beejay tooling.
+# Print request bodies from key-value arguments.
 [positional-arguments]
 bjn *PARAMS:
     #!/usr/bin/env bash
@@ -142,7 +142,7 @@ bjn *PARAMS:
 
 ## Info and chat
 
-# Install or update IRC.
+# Install WeeChat IRC client.
 prep-irc:
     which weechat || brew install weechat
 
@@ -154,11 +154,11 @@ irc CHANNEL:
 # Login via SSO on element
 # Verify by `:verify`, comparing emoji on element, and copy-paste the `:verify confirm USER/DEVICE` command on iamb
 #
-# Install or update im.
+# Install iamb Matrix client.
 prep-im:
     which iamb || brew install iamb
 
-# Install or update hkt archived.
+# Install archived Hacker News terminal clients.
 prep-hkt-archived:
     #!/usr/bin/env bash
     # Usage:
@@ -182,7 +182,7 @@ prep-hkt-archived:
     # An account is needed
     # neonmodem connect --type lemmy --url https://lemmy.ml || true
 
-# Install or update hk.
+# Install the patched Hacker News TUI config.
 prep-hk:
     #!/usr/bin/env bash
     which hackernews_tui || cargo install --git https://github.com/utensil/hackernews-TUI --branch proxy hackernews_tui --locked

@@ -1,6 +1,6 @@
 ## File
 
-# Run tree.
+# Show a git-aware directory tree with eza.
 tree DIR="." LEVEL="1":
     eza --git -T -L {{LEVEL}} --hyperlink {{DIR}}
 
@@ -18,7 +18,7 @@ tree DIR="." LEVEL="1":
 # D - delete
 # cc - copy file path; cd - copy directory; cf - copy filename; cn - copy filename w/o ext
 #
-# Run yazi.
+# Open Yazi with Helix as editor.
 yazi DIR="$HOME/projects":
     #!/usr/bin/env bash
     EDITOR=hx yazi {{DIR}}
@@ -106,7 +106,7 @@ prep-rsync:
 # --copy-links - if wish to copy symlinked target file
 # works as expected if both dirs end with /
 #
-# Run rsync.
+# Synchronize paths with rsyncy and safe defaults.
 rsync SRC DST *PARAMS="--dry-run":
     uvx rsyncy --perms --times --recursive --verbose --partial {{PARAMS}} {{SRC}} {{DST}}
 
@@ -118,7 +118,7 @@ prep-jw:
 # AGENT-NOTE: check-dirs now writes hash files to /tmp/jw/ with timestamped, descriptive names (e.g. /tmp/jw/<timestamp>-left-<leftdirname>.hash.jw)
 # This avoids polluting or failing on read-only source/dest dirs, and is safe for diffing.
 #
-# Run check dirs.
+# Compare source and destination directories with check-dirs.py.
 check-dirs SRC DST *PARAMS="-l -p":
     #!/usr/bin/env bash
     # AGENT-NOTE: Writes hash files to /tmp/jw/ to avoid polluting or failing on read-only source/dest dirs
@@ -144,7 +144,7 @@ sync-dirs SRC DST:
 prep-termscp:
     which termscp || brew install termscp
 
-# Run pathfind.
+# Serve the generated Pagefind index.
 pathfind:
     npx -y pagefind --site output --serve --root-selector 'article > section'
 
@@ -157,7 +157,7 @@ prep-ag:
 
 # just ag '\query{$$$}'
 #
-# Run ag.
+# Search code with ast-grep using the repo config.
 ag PAT LANG="forester" DIR="trees":
     ast-grep run --config dotfiles/.config/ast-grep/sgconfig.yml --lang {{LANG}} -p '{{PAT}}' {{DIR}}
 
@@ -165,18 +165,18 @@ ag PAT LANG="forester" DIR="trees":
 prep-semgrep:
     which semgrep || brew install semgrep
 
-# Run a Semgrep scan.
+# Run Semgrep with default and Trail of Bits rules.
 semscan:
     semgrep scan --config "p/default" --config "p/trailofbits"
 
 
 # https://www.howtogeek.com/803598/app-is-damaged-and-cant-be-opened/
 #
-# Remove quarantine attributes from an app.
+# Remove macOS quarantine metadata from an app.
 uq APP_PATH:
     xattr -d com.apple.quarantine "{{APP_PATH}}"
 
-# Remove a file or directory safely.
+# Move a path to a temporary holding location.
 remove FILE_OR_DIR:
     #!/usr/bin/env bash
     TEMP_LOCATION="/tmp/$(whoami)-$(date +%s)-$(head -c 5 /dev/random|xxd -ps)"

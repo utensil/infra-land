@@ -14,7 +14,7 @@ prep-fancycat:
     mv zig-out/bin/fancy-cat /usr/local/bin/
     rip $fancy_cat_dir
 
-# Install or update alacritty.
+# Install Alacritty and copy its terminal config.
 prep-alacritty:
     #!/usr/bin/env bash
     # Install FiraCode Nerd Font from https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/FiraCode.zip
@@ -25,18 +25,18 @@ prep-alacritty:
     # https://alacritty.org/config-alacritty.html
     cp dotfiles/.alacritty.toml ~/.alacritty.toml
 
-# Install or update kitty.
+# Install Kitty and deploy its archived config.
 [macos]
 prep-kitty: && sync-kitty
     which kitty || brew install --cask kitty
 
-# Install or update kitty.
+# Install Kitty and deploy its archived config.
 [linux]
 prep-kitty:
     # no op for now
     # curl -L https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin
 
-# Deploy kitty configuration.
+# Copy archived Kitty config files into ~/.config/kitty.
 @sync-kitty:
     #!/usr/bin/env bash
     # configure kitty
@@ -50,7 +50,7 @@ prep-kitty:
         kill -SIGUSR1 $KITTY_PID
     fi
 
-# Install or update warp.
+# Install Warp Terminal and print external-terminal setup notes.
 [macos]
 prep-warp:
     #!/usr/bin/env bash
@@ -59,17 +59,17 @@ prep-warp:
         echo "CMD+, then search for terminal, specify External: Osx Exec to Warp.app"
     fi
 
-# Install or update wez.
+# Install WezTerm.
 prep-wez:
     which wezterm || brew install --cask wezterm
     # brew install --cask wezterm@nightly
 
-# Deploy wez configuration.
+# Copy the archived WezTerm Lua config into place.
 sync-wez:
     mkdir -p ~/.config/wezterm
     cp -f dotfiles/.config/wezterm/wezterm.lua ~/.config/wezterm/wezterm.lua
 
-# Install or update sbar.
+# Install SketchyBar and seed the example config.
 prep-sbar:
     #!/usr/bin/env bash
     curl -L https://raw.githubusercontent.com/FelixKratz/dotfiles/master/install_sketchybar.sh | sh
@@ -82,7 +82,7 @@ prep-sbar:
 # Inspired by https://github.com/FelixKratz/dotfiles
 dotfiletmpdir := "/tmp/dotfiles-" + choose('8', HEX)
 
-# Install or update dotfiles tmp.
+# Clone FelixKratz dotfiles into a temporary directory.
 prep-dotfiles-tmp:
     git clone https://github.com/FelixKratz/dotfiles {{dotfiletmpdir}}
 
@@ -94,21 +94,21 @@ config-sbar: prep-dotfiles-tmp
     rip {{dotfiletmpdir}}
     brew services restart felixkratz/formulae/sketchybar
 
-# Run SketchyBar.
+# Restart the SketchyBar Homebrew service.
 sbar:
     brew services restart felixkratz/formulae/sketchybar
 
-# Install or update tile.
+# Prepare the archived tiling window manager stack.
 prep-tile: prep-amethyst
 
-# Install or update skhd.
+# Install skhd and start its hotkey service.
 prep-skhd: prep-dotfiles-tmp
     brew install koekeishiya/formulae/skhd
     rip ~/.config/skhd
     cp -r {{dotfiletmpdir}}/.config/skhd ~/.config/
     skhd --start-service
 
-# Install or update yabai.
+# Install yabai and start its window manager service.
 prep-yabai: prep-dotfiles-tmp prep-skhd
     brew install koekeishiya/formulae/yabai
     rip ~/.config/yabai
@@ -120,13 +120,13 @@ no-yabai:
     yabai --stop-service
     skhd --stop-service
 
-# Install or update amethyst.
+# Install Amethyst and copy its config file.
 prep-amethyst:
     brew install --cask amethyst
     cp -f dotfiles/.amethyst.yml ~/.amethyst.yml
 
 
-# Install or update sync dir tools.
+# Install archived directory sync helper tools.
 @prep-sync-dir-tools: prep-rust
     which jw || (yes|cargo binstall jw)
     which rusync || (yes|cargo binstall rusync)
@@ -149,7 +149,7 @@ deprecated-rusync-dirs SRC DST: prep-sync-dir-tools
 
 # https://www.kelen.cc/dry/docker-hub-mirror
 #
-# Run Galileo tooling.
+# Start HomeGallery with Docker-backed local photo data.
 gal:
     #!/usr/bin/env bash
     mkdir -p ~/home-gallery/data/config
@@ -162,7 +162,7 @@ gal:
     gallery run init --source /data/Pictures
     gallery run server
 
-# Run Prism launcher.
+# Start PhotoPrism from a local Docker Compose file.
 prism:
     #!/usr/bin/env bash
     mkdir -p $HOME/photoprism/storage
@@ -174,7 +174,7 @@ prism:
     echo "Visit http://localhost:2342/, login with admin:insecure"
     docker compose up
 
-# Run Pika tooling.
+# Start PicApport against the local photo library.
 pica:
     #!/usr/bin/env bash
     mkdir -p $HOME/picapport
@@ -183,18 +183,18 @@ pica:
 
 # Prepare raycast
 #
-# Install or update ray.
+# Install Raycast.
 prep-ray:
     #!/usr/bin/env bash
     brew install --cask raycast
 
-# Install or update meet.
+# Install Meetily and download its speech model.
 prep-meet:
     brew tap zackriya-solutions/meetily
     which meetily-server || brew install --cask meetily
     meetily-download-model medium
 
-# Run meet.
+# Start Meetily transcription server.
 meet LANG="zh" SIZE="medium":
     meetily-server --language {{LANG}} --model {{SIZE}}
 

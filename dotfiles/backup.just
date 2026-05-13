@@ -83,7 +83,7 @@ try-smb PATH:
     # test with: smbclient //127.0.0.1/share -U foo
     # Mac finder not working
 
-# Install or update SMB CLI.
+# Install smbclient through Samba.
 prep-smb-cli:
     which smbclient || brew install samba
 
@@ -95,7 +95,7 @@ prep-dav:
     echo "davfs2 installed. Version:"
     davfs2 --version || true
 
-# Run DAV.
+# Mount a WebDAV share with davfs.
 dav URL MNT="/mnt/dav":
     #!/usr/bin/env bash
     # This task is intended to be run inside the container.
@@ -108,7 +108,7 @@ dav URL MNT="/mnt/dav":
     echo "Listing files in mount point:"
     ls -l {{MNT}}
 
-# Run DAV off.
+# Unmount a WebDAV mount point.
 dav-off MNT="/mnt/dav":
     #!/usr/bin/env bash
     # Unmount the WebDAV mount point (default: /mnt/dav)
@@ -117,7 +117,7 @@ dav-off MNT="/mnt/dav":
     umount {{MNT}}
     echo "Unmounted {{MNT}}."
 
-# Run DAV ro.
+# Mount a WebDAV share read-only.
 dav-ro URL MNT="/mnt/dav":
     #!/usr/bin/env bash
     # Mount the WebDAV share read-only. Prompts for credentials interactively.
@@ -147,14 +147,14 @@ mnt-rest REPO:
 
 export DREST_HOME := join(home_directory(), ".drest")
 
-# Install or update drest.
+# Pull Backrest and create its local data directories.
 prep-drest:
     docker pull garethgeorge/backrest:latest
     mkdir -p {{DREST_HOME}}/.backrest/config
     mkdir -p {{DREST_HOME}}/.backrest/data
     mkdir -p {{DREST_HOME}}/.backrest/cache
 
-# Run drest.
+# Start Backrest on localhost with Docker volumes.
 drest:
     # echo $DREST_HOME
     echo "Visit http://127.0.0.1:19898"

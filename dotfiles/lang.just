@@ -2,7 +2,7 @@
 
 # https://blog.vbang.dk/2025/06/29/tools-i-love-mise/
 #
-# Install or update mise.
+# Install mise and activate it in zsh.
 prep-mise:
     #!/usr/bin/env bash
     which mise || brew install mise || (curl https://mise.run | sh)
@@ -15,7 +15,7 @@ prep-mise:
     # https://github.com/jdx/mise/tree/main/src/plugins/core
     echo "Ensure a valid env var MISE_GITHUB_TOKEN, see https://mise.jdx.dev/getting-started.html#github-api-rate-limiting"
 
-# Install or update rust.
+# Install Rust toolchain helpers and cargo-binstall.
 prep-rust:
     #!/usr/bin/env bash
     set -e
@@ -26,36 +26,36 @@ prep-rust:
     . $HOME/.cargo/env
     which cargo-binstall || cargo install cargo-binstall
 
-# Install or update cargo seek.
+# Install cargo-seek.
 prep-cargo-seek:
     which cargo-seek || cargo install --locked cargo-seek
 
-# Install or update taproom.
+# Install taproom for Homebrew taps.
 prep-taproom:
     which taproom || brew install gromgit/brewtils/taproom
 
-# Install or update node.
+# Install Node.js with Homebrew.
 prep-node:
     which node || brew install node || (just prep-mise && mise use -g node@latest)
 
 # https://github.com/astral-sh/uv
 
-# Install or update uv.
+# Install uv on Unix or Windows.
 [unix]
 prep-uv:
     which uv || (curl -LsSf https://astral.sh/uv/install.sh | sh)
 
-# Install or update uv.
+# Install uv on Unix or Windows.
 [windows]
 prep-uv:
     powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 
-# Install or update py.
+# Install Python through uv.
 prep-py:
     uv python install 3.11
     uv venv --python 3.11 --seed
 
-# Install or update go.
+# Install Go and set GOPATH in zsh.
 prep-go:
     which go || brew install go
 
@@ -69,7 +69,7 @@ prep-go:
 #     asdf install elixir v1.18
 #     asdf global elixir ref:v1.18
 
-# Install or update ex.
+# Install Elixir and Erlang.
 prep-ex:
     which iex || brew install elixir
     which elixir
