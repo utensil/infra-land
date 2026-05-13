@@ -210,7 +210,7 @@ prep-zsh:
     # zsh-vi-mode
 
 # https://kasad.com/blog/zsh-profiling/
-# also uncomment the lines at the start and the end of .zshrc
+# For profiling, check the optional zprof hooks in .zshrc before running this.
 #
 # Measure interactive zsh startup time.
 prof-zsh:
