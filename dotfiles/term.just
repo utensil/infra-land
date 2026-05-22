@@ -194,6 +194,32 @@ prep-muxy:
 prep-herdr:
     which herdr && herdr update || (curl -fsSL https://herdr.dev/install.sh | sh)
 
+# Prefix is ctrl+b (herdr default == tmux default).
+#
+# Overrides (action | tmux | was herdr default):
+#   split_vertical    | prefix+|  | prefix+v
+#   split_horizontal  | prefix+-  | prefix+minus
+#   detach            | prefix+d  | prefix+q
+#   rename_tab        | prefix+,  | prefix+shift+t
+#   close_tab         | prefix+&  | prefix+shift+x
+#
+# Already-tmux defaults kept as-is: prefix+c new tab, prefix+p/n prev/next tab,
+# prefix+x close pane, prefix+z zoom, prefix+h/j/k/l focus, prefix+1..9 tab
+# switch, prefix+w workspace picker (~= tmux session picker).
+#
+# Hard limits in herdr 0.6.0: no `prefix+arrow` resize (only prefix+r resize
+# mode), no `prefix+[` scroll mode (prefix+e opens scrollback in $EDITOR),
+# sessions are CLI-only.
+#
+# Symlinks only config.toml (not the whole dir — herdr keeps its sockets/logs
+# in ~/.config/herdr/, unlike zellij which uses $TMPDIR).
+#
+# Install herdr (if needed) and apply tmux-style keybindings
+prep-herdr-tmux:
+    which herdr || just prep-herdr
+    just link-conf herdr/config.toml
+    herdr server reload-config 2>/dev/null || echo "herdr server not running or socket missing — relaunch herdr to pick up new config"
+
 # Install Paseo CLI with bun.
 prep-paseo:
     bun add -g @getpaseo/cli

@@ -1,0 +1,33 @@
+# herdr configuration — tmux-style keybindings
+# Managed via just prep-herdr-tmux (symlinked from ~/projects/infra-land).
+#
+# Prefix is ctrl+b (herdr default == tmux default).
+# Most defaults already match tmux: prefix+c new tab, prefix+p/n prev/next,
+# prefix+x close pane, prefix+z zoom, prefix+h/j/k/l focus, prefix+1..9 tab switch,
+# prefix+w workspace picker (~= tmux session picker).
+#
+# Hard limits in herdr 0.6.0 (no tmux equivalent possible):
+#   - no `prefix → arrow` pane resize (only prefix+r toggles resize mode)
+#   - no `prefix+[` scroll/copy mode (scrollback opens in $EDITOR via prefix+e)
+#   - sessions are CLI-only (`herdr session attach <name>`), no in-UI picker
+
+onboarding = false
+
+[theme]
+name = "gruvbox"
+
+[ui.sound]
+enabled = false
+
+[ui.toast]
+enabled = true
+
+[keys]
+# tmux-style splits
+split_vertical = "prefix+|"
+split_horizontal = "prefix+-"
+
+# tmux-style detach / rename / close
+detach = "prefix+d"
+rename_tab = "prefix+,"
+close_tab = "prefix+&"
