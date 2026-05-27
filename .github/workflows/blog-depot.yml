@@ -68,6 +68,32 @@ jobs:
           echo "depot: $depot"
           du -sh "$depot"
 
+      - name: Validate render (x86_64, headless, against the built depot)
+        if: steps.fod.outputs.locked == 'true'
+        working-directory: nix
+        run: |
+          nix develop .#blog-render -c bash -c '
+            set -e
+            export DISPLAY=:73
+            rm -f /tmp/.X73-lock /tmp/.X11-unix/X73 2>/dev/null || true
+            Xvfb :73 -screen 0 1280x1024x24 +extension GLX +render -noreset >/tmp/xvfb.log 2>&1 &
+            sleep 4
+            mkdir -p /tmp/wdepot
+            export JULIA_DEPOT_PATH="/tmp/wdepot:'"$DEPOT_PATH"'"
+            export JULIA_PKG_OFFLINE=true
+            cd blog-depot
+            julia --project=. render.jl 2>&1 | tee /tmp/render.out
+          '
+          test -s /tmp/streamplot.mp4 && test -s /tmp/lorenz.mp4 || { echo "::error::mp4s not produced"; exit 1; }
+          load="$(grep -oE 'load Grassmann\+GLMakie: [0-9.]+' /tmp/render.out | grep -oE '[0-9.]+' | head -1)"
+          total="$(grep -oE 'TOTAL render: [0-9.]+' /tmp/render.out | grep -oE '[0-9.]+' | head -1)"
+          echo "load=${load}s total=${total}s" | tee -a "$GITHUB_STEP_SUMMARY"
+          # A fast load proves the store-depot .ji are valid (no recompile). A recompile
+          # would push load to ~200s+ and defeat the cache → fail so we notice.
+          awk -v l="${load:-999}" 'BEGIN { exit (l+0 > 90) }' \
+            || { echo "::error::load ${load}s — depot recompiled (cache invalid at store path)"; exit 1; }
+          echo "VALIDATE OK: rendered against the cached depot, no recompile (load ${load}s, total ${total}s)"
+
       - name: Package depot (tar.zst at its store path)
         if: steps.fod.outputs.locked == 'true'
         run: |

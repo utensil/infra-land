@@ -246,6 +246,27 @@
               typst-ts-cli --version 2>/dev/null || echo "typst-ts-cli present"
             '';
           };
+
+          # Headless-render environment: official julia + the software-GL stack
+          # (mesa.drivers llvmpipe + libglvnd + X libs) + Xvfb, with the proven GL
+          # recipe exported. Used to render ca-in-julia against the precompiled depot
+          # (CI validation now; the same env Spindle uses for the live render). Start
+          # Xvfb + point JULIA_DEPOT_PATH at the depot, then `julia --project … render`.
+          blog-render =
+            let
+              julia = juliaOfficialFor pkgs system;
+              xlibs = with pkgs.xorg; [ libX11 libXrandr libXinerama libXcursor libXi libXext libXxf86vm libXfixes ];
+              glLibPath = pkgs.lib.makeLibraryPath ([ pkgs.libGL pkgs.libglvnd pkgs.mesa.drivers pkgs.mesa ] ++ xlibs);
+            in pkgs.mkShell {
+              packages = [ julia pkgs.xorg.xorgserver ];
+              shellHook = ''
+                export LD_LIBRARY_PATH="${glLibPath}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+                export LIBGL_DRIVERS_PATH="${pkgs.mesa.drivers}/lib/dri"
+                export LIBGL_ALWAYS_SOFTWARE=1
+                export GALLIUM_DRIVER=llvmpipe
+                export __GLX_VENDOR_LIBRARY_NAME=mesa
+              '';
+            };
         });
     };
 }
