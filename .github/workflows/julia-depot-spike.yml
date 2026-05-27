@@ -1,9 +1,10 @@
 name: julia-depot-spike
 
-# Clean test: realize julia, export LD_LIBRARY_PATH=${julia}/lib/julia (where
-# libquadmath.so.0 is), invoke the binary DIRECTLY, and precompile the failing
-# SpecialFunctions. Does exporting that dir let the precompile WORKERS find
-# libquadmath? (No fragile diagnostics this time.)
+# libquadmath SOLVED: realize julia, export LD_LIBRARY_PATH=${julia}/lib/julia,
+# invoke the binary DIRECTLY (not `nix run`, which sanitized the env so workers
+# lost it). SpecialFunctions precompiles. Now the real test: full depot precompile
+# (GLMakie etc.) headless via xvfb → does GLMakie precompile headless, how long,
+# how big? Drives the two-stage nix depot derivation.
 on:
   workflow_dispatch:
   push:
@@ -11,28 +12,28 @@ on:
       - '.github/workflows/julia-depot-spike.yml'
 
 jobs:
-  clean-test:
+  full-precompile:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
           repository: utensil/blog
           path: blog
       - uses: DeterminateSystems/nix-installer-action@main
-      - name: precompile SpecialFunctions with exported lib/julia
+      - name: headless GL deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1 libglu1-mesa freeglut3-dev mesa-utils libgl1-mesa-dri xorg-dev
+      - name: full precompile (direct binary + lib/julia + xvfb, timed)
         run: |
           export JULIA_DEPOT_PATH="$PWD/depot"
+          export LIBGL_ALWAYS_SOFTWARE=1
           PROJ="$PWD/blog/content/posts/ca-in-julia"
           JL="github:NixOS/nixpkgs/cc6431d5598071f0021efc6c009c79e5b5fe1617#julia_110"
           JULIA=$(nix build --no-link --print-out-paths "$JL")
           export LD_LIBRARY_PATH="$JULIA/lib/julia${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
-          "$JULIA/bin/julia" --project="$PROJ" -e 'using Pkg; Pkg.instantiate()'
-          echo "::group::precompile SpecialFunctions"
-          if "$JULIA/bin/julia" --project="$PROJ" -e 'using Pkg; Pkg.precompile("SpecialFunctions")'; then
-            echo "RESULT=SF_PRECOMPILE_OK"
-          else
-            echo "RESULT=SF_PRECOMPILE_FAILED"
-          fi
-          echo "::endgroup::"
+          echo "::group::instantiate" ; time "$JULIA/bin/julia" --project="$PROJ" -e 'using Pkg; Pkg.instantiate()' ; echo "::endgroup::"
+          echo "::group::precompile (full, GLMakie, headless)" ; time xvfb-run -a "$JULIA/bin/julia" --project="$PROJ" -e 'using Pkg; Pkg.precompile()' ; echo "::endgroup::"
+          echo "::group::load GLMakie (cache check)" ; time xvfb-run -a "$JULIA/bin/julia" --project="$PROJ" -e 'using GLMakie; println("GLMakie OK")' ; echo "::endgroup::"
+          echo "== depot size ==" ; du -sh "$JULIA_DEPOT_PATH"
