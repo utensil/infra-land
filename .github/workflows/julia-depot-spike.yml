@@ -30,16 +30,12 @@ jobs:
           export JULIA_DEPOT_PATH="$PWD/depot"
           export LIBGL_ALWAYS_SOFTWARE=1
           export PROJ="$PWD/blog/content/posts/ca-in-julia"
-          xvfb-run -a nix develop ./nix#blog -c bash -ec '
+          nix develop ./nix#blog -c bash -ec '
             echo "== julia ==" ; julia --version
-            echo "::group::instantiate" ; time julia --project="$PROJ" -e "using Pkg; Pkg.instantiate()" ; echo "::endgroup::"
-            # x86_64 JLLs (openspecfun) DT_NEEDED libquadmath.so.0 from the
-            # CompilerSupportLibraries_jll artifact, which is NOT on the loader path
-            # at precompile time → add every depot artifact lib dir.
+            echo "::group::instantiate" ; julia --project="$PROJ" -e "using Pkg; Pkg.instantiate()" ; echo "::endgroup::"
+            echo "== libquadmath in depot? ==" ; find "$JULIA_DEPOT_PATH" -name "libquadmath.so*" 2>/dev/null
+            echo "== libgfortran in depot? ==" ; find "$JULIA_DEPOT_PATH" -name "libgfortran.so*" 2>/dev/null | head -3
             export LD_LIBRARY_PATH="$(find "$JULIA_DEPOT_PATH"/artifacts -name "*.so*" -printf "%h\n" 2>/dev/null | sort -u | paste -sd: -):${LD_LIBRARY_PATH:-}"
-            echo "artifact libs added to LD_LIBRARY_PATH"
-            echo "::group::precompile" ; time julia --project="$PROJ" -e "using Pkg; Pkg.precompile()" ; echo "::endgroup::"
-            echo "::group::load GLMakie (should be fast = cache works)" ; time julia --project="$PROJ" -e "using GLMakie; println(\"GLMakie OK\")" ; echo "::endgroup::"
+            echo "== is a libquadmath dir on LD_LIBRARY_PATH? ==" ; echo "$LD_LIBRARY_PATH" | tr : "\n" | while read d; do [ -e "$d/libquadmath.so.0" ] && echo "YES: $d/libquadmath.so.0"; done
+            echo "::group::repro using SpecialFunctions (minimal, fast)" ; julia --project="$PROJ" -e "using SpecialFunctions; println(\"SF OK\")" 2>&1 | tail -15 ; echo "::endgroup::"
           '
-          echo "== depot size ==" ; du -sh "$JULIA_DEPOT_PATH"
-          du -sh "$JULIA_DEPOT_PATH"/* 2>/dev/null | sort -h | tail -8
