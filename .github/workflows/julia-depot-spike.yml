@@ -1,9 +1,9 @@
 name: julia-depot-spike
 
-# libquadmath is at ${julia}/lib/julia (x86_64). `nix run` may sanitize the env,
-# so precompile workers don't inherit our LD_LIBRARY_PATH. Test: realize julia,
-# invoke the binary DIRECTLY with LD_LIBRARY_PATH=${julia}/lib/julia exported, so
-# workers inherit it → does the failing SpecialFunctions precompile now succeed?
+# Clean test: realize julia, export LD_LIBRARY_PATH=${julia}/lib/julia (where
+# libquadmath.so.0 is), invoke the binary DIRECTLY, and precompile the failing
+# SpecialFunctions. Does exporting that dir let the precompile WORKERS find
+# libquadmath? (No fragile diagnostics this time.)
 on:
   workflow_dispatch:
   push:
@@ -11,7 +11,7 @@ on:
       - '.github/workflows/julia-depot-spike.yml'
 
 jobs:
-  direct-binary:
+  clean-test:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -20,20 +20,19 @@ jobs:
           repository: utensil/blog
           path: blog
       - uses: DeterminateSystems/nix-installer-action@main
-      - name: direct julia binary + exported LD_LIBRARY_PATH
+      - name: precompile SpecialFunctions with exported lib/julia
         run: |
           export JULIA_DEPOT_PATH="$PWD/depot"
           PROJ="$PWD/blog/content/posts/ca-in-julia"
           JL="github:NixOS/nixpkgs/cc6431d5598071f0021efc6c009c79e5b5fe1617#julia_110"
           JULIA=$(nix build --no-link --print-out-paths "$JL")
-          echo "julia store path = $JULIA"
-          export LD_LIBRARY_PATH="$JULIA/lib/julia:${LD_LIBRARY_PATH:-}"
+          export LD_LIBRARY_PATH="$JULIA/lib/julia${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
           echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
-
-          echo "== child inherits LLP? =="
-          "$JULIA/bin/julia" -e 'println("MAIN=", get(ENV,"LD_LIBRARY_PATH","UNSET")); run(`bash -c "printf CHILD=; printf %s \"$LD_LIBRARY_PATH\"; echo"`)'
-
-          echo "::group::instantiate" ; "$JULIA/bin/julia" --project="$PROJ" -e 'using Pkg; Pkg.instantiate()' ; echo "::endgroup::"
-          echo "::group::precompile SpecialFunctions (direct binary + exported LLP)"
-          if "$JULIA/bin/julia" --project="$PROJ" -e 'using Pkg; Pkg.precompile("SpecialFunctions")' 2>&1 | tail -10; then echo "SF_OK"; else echo "SF_FAILED"; fi
+          "$JULIA/bin/julia" --project="$PROJ" -e 'using Pkg; Pkg.instantiate()'
+          echo "::group::precompile SpecialFunctions"
+          if "$JULIA/bin/julia" --project="$PROJ" -e 'using Pkg; Pkg.precompile("SpecialFunctions")'; then
+            echo "RESULT=SF_PRECOMPILE_OK"
+          else
+            echo "RESULT=SF_PRECOMPILE_FAILED"
+          fi
           echo "::endgroup::"
