@@ -34,6 +34,6 @@ jobs:
           JULIA=$(nix build --no-link --print-out-paths "$JL")
           export LD_LIBRARY_PATH="$JULIA/lib/julia${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
           echo "::group::instantiate" ; time "$JULIA/bin/julia" --project="$PROJ" -e 'using Pkg; Pkg.instantiate()' ; echo "::endgroup::"
-          echo "::group::precompile (full, GLMakie, headless)" ; time xvfb-run -a "$JULIA/bin/julia" --project="$PROJ" -e 'using Pkg; Pkg.precompile()' ; echo "::endgroup::"
-          echo "::group::load GLMakie (cache check)" ; time xvfb-run -a "$JULIA/bin/julia" --project="$PROJ" -e 'using GLMakie; println("GLMakie OK")' ; echo "::endgroup::"
+          echo "::group::precompile (full, GLMakie, headless)" ; time xvfb-run -s '-screen 0 1280x1024x24' -a "$JULIA/bin/julia" --project="$PROJ" -e 'using Pkg; Pkg.precompile()' ; echo "::endgroup::"
+          echo "::group::load GLMakie (cache check)" ; time xvfb-run -s '-screen 0 1280x1024x24' -a "$JULIA/bin/julia" --project="$PROJ" -e 'using GLMakie; println("GLMakie OK")' ; echo "::endgroup::"
           echo "== depot size ==" ; du -sh "$JULIA_DEPOT_PATH"
