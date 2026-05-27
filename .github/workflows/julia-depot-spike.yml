@@ -1,10 +1,11 @@
 name: julia-depot-spike
 
-# Feasibility spike for a freeze-free blog. Current blocker: x86_64 OpenSpecFun_jll
-# can't load libquadmath.so.0 (CompilerSupportLibraries_jll defers to system libs;
-# nixpkgs cc6431d5/2024-05 gcc doesn't ship a findable libquadmath). A/B test:
-# does the PINNED nixpkgs julia vs a RECENT nixpkgs julia load SpecialFunctions
-# (the openspecfun→libquadmath chain) on x86_64?
+# Feasibility spike for a freeze-free blog. libquadmath was a self-inflicted
+# devShell issue — the WRAPPED julia (nix run, as a derivation would use it)
+# resolves JLL libs. Now the real test: full instantiate + PRECOMPILE the
+# ca-in-julia depot (GLMakie etc.) headless via the wrapped julia → does GLMakie
+# precompile headless (Mesa+xvfb), how long, how big? Drives the two-stage nix
+# depot derivation.
 on:
   workflow_dispatch:
   push:
@@ -12,23 +13,26 @@ on:
       - '.github/workflows/julia-depot-spike.yml'
 
 jobs:
-  jll-ab:
+  full-precompile:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
           repository: utensil/blog
           path: blog
       - uses: DeterminateSystems/nix-installer-action@main
-      - name: A) pinned julia_110 (cc6431d5) — using SpecialFunctions
+      - name: headless GL deps
         run: |
-          PROJ="$PWD/blog/content/posts/ca-in-julia"
-          JULIA_DEPOT_PATH="$PWD/da" nix run "github:NixOS/nixpkgs/cc6431d5598071f0021efc6c009c79e5b5fe1617#julia_110" -- \
-            --project="$PROJ" -e 'using Pkg; Pkg.instantiate(); using SpecialFunctions; println("A: SF OK on pinned")' 2>&1 | tail -12 || echo "A: FAILED (pinned)"
-      - name: B) recent nixpkgs julia_110 (nixos-24.11) — using SpecialFunctions
-        if: always()
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1 libglu1-mesa freeglut3-dev mesa-utils libgl1-mesa-dri xorg-dev
+      - name: instantiate + precompile + load GLMakie (wrapped julia, xvfb, timed)
         run: |
+          export JULIA_DEPOT_PATH="$PWD/depot"
+          export LIBGL_ALWAYS_SOFTWARE=1
           PROJ="$PWD/blog/content/posts/ca-in-julia"
-          JULIA_DEPOT_PATH="$PWD/db" nix run "github:NixOS/nixpkgs/nixos-24.11#julia_110" -- \
-            --project="$PROJ" -e 'using Pkg; Pkg.instantiate(); using SpecialFunctions; println("B: SF OK on recent")' 2>&1 | tail -12 || echo "B: FAILED (recent)"
+          JL="github:NixOS/nixpkgs/cc6431d5598071f0021efc6c009c79e5b5fe1617#julia_110"
+          echo "::group::instantiate" ; time xvfb-run -a nix run "$JL" -- --project="$PROJ" -e 'using Pkg; Pkg.instantiate()' ; echo "::endgroup::"
+          echo "::group::precompile (GLMakie etc., headless)" ; time xvfb-run -a nix run "$JL" -- --project="$PROJ" -e 'using Pkg; Pkg.precompile()' ; echo "::endgroup::"
+          echo "::group::load GLMakie (should be fast = cache works)" ; time xvfb-run -a nix run "$JL" -- --project="$PROJ" -e 'using GLMakie; println("GLMakie OK")' ; echo "::endgroup::"
+          echo "== depot size ==" ; du -sh "$JULIA_DEPOT_PATH"
