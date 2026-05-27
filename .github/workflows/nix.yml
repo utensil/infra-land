@@ -1,0 +1,29 @@
+name: nix flake
+
+# Build/validate the SSG toolchain flakes on x86_64 (Spindle's arch) — the local
+# loop is colima+docker nixos/nix (arm64), so x86_64 + heavy derivations
+# (typst-ts-cli, the precompiled Julia depot) get proven here before Spindle.
+on:
+  push:
+    paths:
+      - 'nix/**'
+      - '.github/workflows/nix.yml'
+  workflow_dispatch:
+
+jobs:
+  blog-toolchain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - name: flake show
+        run: nix flake show ./nix
+      - name: build blog devShell (x86_64-linux)
+        run: |
+          nix develop ./nix#blog --command bash -c '
+            set -e
+            hugo version
+            julia --version
+            quarto --version
+            d2 --version
+          '
