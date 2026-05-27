@@ -1,10 +1,10 @@
 name: julia-depot-spike
 
-# Depot precompiles 257/258 deps in ~5min (libquadmath solved via direct binary +
-# LD_LIBRARY_PATH=${julia}/lib/julia). Only GLMakie's GL precompile workload fails:
-# "DISPLAY missing" in workers (xvfb-run sets DISPLAY only for its direct child) +
-# "GLX: No GLXFBConfigs". Fix: start Xvfb manually + EXPORT DISPLAY (workers
-# inherit) + Mesa software GLX. The blog freeze renders GLMakie headless, so it's doable.
+# UNLOCK HYPOTHESIS: nixpkgs julia_110 can't do headless GL (No GLXFBConfigs), but
+# the freeze worked because juliaup installs the OFFICIAL julia binary, whose GLFW
+# uses the system Mesa libGL. Test: official julia 1.10.3 binary + GLMakie's xvfb
+# recipe → does the full depot (incl. GLMakie) precompile headless? If yes, package
+# the official binary in the flake (fetchurl + autopatchelf) → freeze-free is back.
 on:
   workflow_dispatch:
   push:
@@ -12,32 +12,30 @@ on:
       - '.github/workflows/julia-depot-spike.yml'
 
 jobs:
-  full-precompile:
-    runs-on: ubuntu-22.04
+  official-julia:
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
           repository: utensil/blog
           path: blog
-      - uses: DeterminateSystems/nix-installer-action@main
-      - name: headless GL deps
+      - name: GL deps (GLMakie CI set)
         run: |
           sudo apt-get update
           sudo apt-get install -y xorg-dev mesa-utils xvfb libgl1 freeglut3-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev xsettingsd x11-xserver-utils libgl1-mesa-dri
-      - name: full precompile (manual Xvfb + exported DISPLAY, timed)
+      - name: official julia 1.10.3 + full precompile (GLMakie, headless)
         run: |
+          curl -fsSL https://julialang-s3.julialang.org/bin/linux/x64/1.10/julia-1.10.3-linux-x86_64.tar.gz | tar xz
+          JULIA="$PWD/julia-1.10.3/bin/julia"
+          $JULIA --version
           export DISPLAY=:99
           Xvfb :99 -screen 0 1280x1024x24 +extension GLX +render -noreset >/tmp/xvfb.log 2>&1 &
           sleep 3
           export LIBGL_ALWAYS_SOFTWARE=1
           export JULIA_DEPOT_PATH="$PWD/depot"
           PROJ="$PWD/blog/content/posts/ca-in-julia"
-          JL="github:NixOS/nixpkgs/cc6431d5598071f0021efc6c009c79e5b5fe1617#julia_110"
-          JULIA=$(nix build --no-link --print-out-paths "$JL")
-          export LD_LIBRARY_PATH="$JULIA/lib/julia${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-          echo "== GLX sanity (llvmpipe?) ==" ; glxinfo -display :99 2>&1 | grep -iE 'OpenGL renderer|direct rendering|GLX version' | head -4 || echo "glxinfo n/a"
-          echo "::group::instantiate" ; time "$JULIA/bin/julia" --project="$PROJ" -e 'using Pkg; Pkg.instantiate()' ; echo "::endgroup::"
-          echo "::group::precompile (full, GLMakie)" ; time "$JULIA/bin/julia" --project="$PROJ" -e 'using Pkg; Pkg.precompile()' ; echo "::endgroup::"
-          echo "::group::load GLMakie" ; time "$JULIA/bin/julia" --project="$PROJ" -e 'using GLMakie; println("GLMakie OK")' ; echo "::endgroup::"
+          echo "::group::instantiate" ; time "$JULIA" --project="$PROJ" -e 'using Pkg; Pkg.instantiate()' ; echo "::endgroup::"
+          echo "::group::precompile (GLMakie, headless)" ; time "$JULIA" --project="$PROJ" -e 'using Pkg; Pkg.precompile()' ; echo "::endgroup::"
+          echo "::group::load GLMakie" ; time "$JULIA" --project="$PROJ" -e 'using GLMakie; println("GLMakie OK")' ; echo "::endgroup::"
           echo "== depot size ==" ; du -sh "$JULIA_DEPOT_PATH"
