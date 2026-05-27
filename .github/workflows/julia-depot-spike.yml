@@ -33,6 +33,11 @@ jobs:
           xvfb-run -a nix develop ./nix#blog -c bash -ec '
             echo "== julia ==" ; julia --version
             echo "::group::instantiate" ; time julia --project="$PROJ" -e "using Pkg; Pkg.instantiate()" ; echo "::endgroup::"
+            # x86_64 JLLs (openspecfun) DT_NEEDED libquadmath.so.0 from the
+            # CompilerSupportLibraries_jll artifact, which is NOT on the loader path
+            # at precompile time → add every depot artifact lib dir.
+            export LD_LIBRARY_PATH="$(find "$JULIA_DEPOT_PATH"/artifacts -name "*.so*" -printf "%h\n" 2>/dev/null | sort -u | paste -sd: -):${LD_LIBRARY_PATH:-}"
+            echo "artifact libs added to LD_LIBRARY_PATH"
             echo "::group::precompile" ; time julia --project="$PROJ" -e "using Pkg; Pkg.precompile()" ; echo "::endgroup::"
             echo "::group::load GLMakie (should be fast = cache works)" ; time julia --project="$PROJ" -e "using GLMakie; println(\"GLMakie OK\")" ; echo "::endgroup::"
           '
