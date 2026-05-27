@@ -24,7 +24,7 @@ jobs:
       - name: headless GL deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libgl1 libglx-mesa0 libglu1-mesa freeglut3-dev mesa-utils libgl1-mesa-dri xorg-dev
+          sudo apt-get install -y xorg-dev mesa-utils xvfb libgl1 freeglut3-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev xsettingsd x11-xserver-utils libgl1-mesa-dri
       - name: full precompile (manual Xvfb + exported DISPLAY, timed)
         run: |
           export DISPLAY=:99
