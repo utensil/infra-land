@@ -1,9 +1,10 @@
 name: julia-depot-spike
 
-# Feasibility spike for a freeze-free blog: can the ca-in-julia Julia depot
-# (GLMakie etc.) instantiate + PRECOMPILE headless on x86_64, how long, how big?
-# Uses the flake's pinned julia 1.10.3 + the blog's ca-in-julia Manifest. Results
-# drive the two-stage nix depot derivation (FOD instantiate + sandboxed precompile).
+# Feasibility spike for a freeze-free blog. Current blocker: x86_64 OpenSpecFun_jll
+# can't load libquadmath.so.0 (CompilerSupportLibraries_jll defers to system libs;
+# nixpkgs cc6431d5/2024-05 gcc doesn't ship a findable libquadmath). A/B test:
+# does the PINNED nixpkgs julia vs a RECENT nixpkgs julia load SpecialFunctions
+# (the openspecfun→libquadmath chain) on x86_64?
 on:
   workflow_dispatch:
   push:
@@ -11,31 +12,23 @@ on:
       - '.github/workflows/julia-depot-spike.yml'
 
 jobs:
-  spike:
+  jll-ab:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
           repository: utensil/blog
           path: blog
       - uses: DeterminateSystems/nix-installer-action@main
-      - name: headless GL deps (mirrors blog freeze.yml)
+      - name: A) pinned julia_110 (cc6431d5) — using SpecialFunctions
         run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb libgl1 libglu1-mesa freeglut3-dev mesa-utils libgl1-mesa-dri xorg-dev
-      - name: instantiate + precompile + load GLMakie (timed, headless)
+          PROJ="$PWD/blog/content/posts/ca-in-julia"
+          JULIA_DEPOT_PATH="$PWD/da" nix run "github:NixOS/nixpkgs/cc6431d5598071f0021efc6c009c79e5b5fe1617#julia_110" -- \
+            --project="$PROJ" -e 'using Pkg; Pkg.instantiate(); using SpecialFunctions; println("A: SF OK on pinned")' 2>&1 | tail -12 || echo "A: FAILED (pinned)"
+      - name: B) recent nixpkgs julia_110 (nixos-24.11) — using SpecialFunctions
+        if: always()
         run: |
-          export JULIA_DEPOT_PATH="$PWD/depot"
-          export LIBGL_ALWAYS_SOFTWARE=1
-          export PROJ="$PWD/blog/content/posts/ca-in-julia"
-          nix develop ./nix#blog -c bash -ec '
-            echo "== julia ==" ; julia --version
-            echo "::group::instantiate" ; julia --project="$PROJ" -e "using Pkg; Pkg.instantiate()" ; echo "::endgroup::"
-            echo "== libquadmath in depot? ==" ; find "$JULIA_DEPOT_PATH" -name "libquadmath.so*" 2>/dev/null
-            echo "== libgfortran in depot? ==" ; find "$JULIA_DEPOT_PATH" -name "libgfortran.so*" 2>/dev/null | head -3
-            export LD_LIBRARY_PATH="$(find "$JULIA_DEPOT_PATH"/artifacts -name "*.so*" -printf "%h\n" 2>/dev/null | sort -u | paste -sd: -):${LD_LIBRARY_PATH:-}"
-            echo "== is a libquadmath dir on LD_LIBRARY_PATH? ==" ; echo "$LD_LIBRARY_PATH" | tr : "\n" | while read d; do [ -e "$d/libquadmath.so.0" ] && echo "YES: $d/libquadmath.so.0"; done
-            echo "::group::repro using SpecialFunctions (minimal, fast)" ; julia --project="$PROJ" -e "using SpecialFunctions; println(\"SF OK\")" 2>&1 | tail -15 ; echo "::endgroup::"
-          '
+          PROJ="$PWD/blog/content/posts/ca-in-julia"
+          JULIA_DEPOT_PATH="$PWD/db" nix run "github:NixOS/nixpkgs/nixos-24.11#julia_110" -- \
+            --project="$PROJ" -e 'using Pkg; Pkg.instantiate(); using SpecialFunctions; println("B: SF OK on recent")' 2>&1 | tail -12 || echo "B: FAILED (recent)"
