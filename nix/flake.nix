@@ -116,7 +116,7 @@
           # aarch64 = local container; x86_64 = Spindle/GH (get its hash from a GH build).
           outputHash = {
             "aarch64-linux" = "sha256-1x4J3hFfwP2cubYd72MZ2Utz4yLv23chulQKxHvmyVU=";
-            "x86_64-linux"  = pkgs.lib.fakeHash; # TODO: fill from GH Actions x86_64 build
+            "x86_64-linux"  = "sha256-MXhGmbnBw9pVABuNN+jT72+ocwH1hRrLCUHVOrJd+Zc=";
           }.${system};
           buildPhase = ''
             runHook preBuild
