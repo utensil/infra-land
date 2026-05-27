@@ -1,0 +1,40 @@
+name: julia-depot-spike
+
+# Feasibility spike for a freeze-free blog: can the ca-in-julia Julia depot
+# (GLMakie etc.) instantiate + PRECOMPILE headless on x86_64, how long, how big?
+# Uses the flake's pinned julia 1.10.3 + the blog's ca-in-julia Manifest. Results
+# drive the two-stage nix depot derivation (FOD instantiate + sandboxed precompile).
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/julia-depot-spike.yml'
+
+jobs:
+  spike:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: utensil/blog
+          path: blog
+      - uses: DeterminateSystems/nix-installer-action@main
+      - name: headless GL deps (mirrors blog freeze.yml)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1 libglu1-mesa freeglut3-dev mesa-utils libgl1-mesa-dri xorg-dev
+      - name: instantiate + precompile + load GLMakie (timed, headless)
+        run: |
+          export JULIA_DEPOT_PATH="$PWD/depot"
+          export LIBGL_ALWAYS_SOFTWARE=1
+          export PROJ="$PWD/blog/content/posts/ca-in-julia"
+          xvfb-run -a nix develop ./nix#blog -c bash -ec '
+            echo "== julia ==" ; julia --version
+            echo "::group::instantiate" ; time julia --project="$PROJ" -e "using Pkg; Pkg.instantiate()" ; echo "::endgroup::"
+            echo "::group::precompile" ; time julia --project="$PROJ" -e "using Pkg; Pkg.precompile()" ; echo "::endgroup::"
+            echo "::group::load GLMakie (should be fast = cache works)" ; time julia --project="$PROJ" -e "using GLMakie; println(\"GLMakie OK\")" ; echo "::endgroup::"
+          '
+          echo "== depot size ==" ; du -sh "$JULIA_DEPOT_PATH"
+          du -sh "$JULIA_DEPOT_PATH"/* 2>/dev/null | sort -h | tail -8
