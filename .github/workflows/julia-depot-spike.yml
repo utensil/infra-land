@@ -1,10 +1,9 @@
 name: julia-depot-spike
 
-# Freeze-free blog feasibility. Finding: `using X` works (main process) but
-# Pkg.precompile() WORKERS don't inherit the julia wrapper's lib env → libquadmath
-# not found. Fix: export CompilerSupportLibraries_jll's LIBPATH into LD_LIBRARY_PATH
-# so workers inherit it. This spike locates libquadmath + tests that fix on the
-# full precompile (GLMakie etc.) under xvfb, with timing + depot size.
+# Freeze-free blog feasibility. libquadmath is at ${julia}/lib/julia (x86_64).
+# Pkg.precompile() WORKERS don't find it even when we export that dir. Diagnose:
+# does a julia-spawned child inherit our exported LD_LIBRARY_PATH (is nix run /
+# the wrapper resetting it)? Then precompile a single pkg (fast) with the env.
 on:
   workflow_dispatch:
   push:
@@ -12,43 +11,32 @@ on:
       - '.github/workflows/julia-depot-spike.yml'
 
 jobs:
-  worker-env-fix:
+  env-propagation:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
         with:
           repository: utensil/blog
           path: blog
       - uses: DeterminateSystems/nix-installer-action@main
-      - name: headless GL deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb libgl1 libglu1-mesa freeglut3-dev mesa-utils libgl1-mesa-dri xorg-dev
-      - name: locate libquadmath + retry precompile with worker LD_LIBRARY_PATH
+      - name: env propagation + single-pkg precompile
         run: |
           export JULIA_DEPOT_PATH="$PWD/depot"
-          export LIBGL_ALWAYS_SOFTWARE=1
           PROJ="$PWD/blog/content/posts/ca-in-julia"
           JL="github:NixOS/nixpkgs/cc6431d5598071f0021efc6c009c79e5b5fe1617#julia_110"
 
           echo "::group::instantiate" ; nix run "$JL" -- --project="$PROJ" -e 'using Pkg; Pkg.instantiate()' ; echo "::endgroup::"
 
-          echo "== where does the MAIN process get libquadmath? =="
-          nix run "$JL" -- -e '
-            using CompilerSupportLibraries_jll, Libdl
-            println("ENV_LLP=", get(ENV,"LD_LIBRARY_PATH","<unset>"))
-            println("CSL_LIBPATH=", CompilerSupportLibraries_jll.LIBPATH[])
-            println("CSL_artifact=", CompilerSupportLibraries_jll.artifact_dir)
-            println("dlpath=", try Libdl.dlpath("libquadmath.so.0") catch e; string(e) end)
-          ' 2>&1 | tail -8
+          LIBJ=$(nix run "$JL" -- -e 'print(normpath(joinpath(Sys.BINDIR,"..","lib","julia")))')
+          echo "lib/julia = $LIBJ"
+          ls -l "$LIBJ/libquadmath.so.0" 2>&1
 
-          CSLP=$(nix run "$JL" -- -e 'using CompilerSupportLibraries_jll; print(CompilerSupportLibraries_jll.LIBPATH[])' 2>/dev/null)
-          export LD_LIBRARY_PATH="$CSLP:${LD_LIBRARY_PATH:-}"
-          echo "== LD_LIBRARY_PATH for workers: $LD_LIBRARY_PATH =="
+          export LD_LIBRARY_PATH="$LIBJ:${LD_LIBRARY_PATH:-}"
+          echo "== exported LD_LIBRARY_PATH=$LD_LIBRARY_PATH =="
+          echo "== does main + a julia-spawned child see it via nix run? =="
+          nix run "$JL" -- -e 'println("MAIN_LLP=", get(ENV,"LD_LIBRARY_PATH","UNSET")); run(`bash -lc "echo CHILD_LLP=\$LD_LIBRARY_PATH"`)' 2>&1 | grep -E 'MAIN_LLP|CHILD_LLP'
 
-          echo "::group::precompile (worker env fix, GLMakie, xvfb)"
-          time xvfb-run -a nix run "$JL" -- --project="$PROJ" -e 'using Pkg; Pkg.precompile()' 2>&1 | tail -18
+          echo "::group::precompile SpecialFunctions (single, fast) with the env"
+          nix run "$JL" -- --project="$PROJ" -e 'using Pkg; Pkg.precompile("SpecialFunctions")' 2>&1 | tail -10 && echo "PRECOMPILE_SF_OK" || echo "PRECOMPILE_SF_FAILED"
           echo "::endgroup::"
-          echo "::group::load GLMakie (cached?)" ; time xvfb-run -a nix run "$JL" -- --project="$PROJ" -e 'using GLMakie; println("GLMakie OK")' 2>&1 | tail -5 ; echo "::endgroup::"
-          echo "== depot size ==" ; du -sh "$JULIA_DEPOT_PATH" 2>/dev/null
