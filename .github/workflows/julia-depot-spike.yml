@@ -1,9 +1,9 @@
 name: julia-depot-spike
 
-# Freeze-free blog feasibility. libquadmath is at ${julia}/lib/julia (x86_64).
-# Pkg.precompile() WORKERS don't find it even when we export that dir. Diagnose:
-# does a julia-spawned child inherit our exported LD_LIBRARY_PATH (is nix run /
-# the wrapper resetting it)? Then precompile a single pkg (fast) with the env.
+# libquadmath is at ${julia}/lib/julia (x86_64). `nix run` may sanitize the env,
+# so precompile workers don't inherit our LD_LIBRARY_PATH. Test: realize julia,
+# invoke the binary DIRECTLY with LD_LIBRARY_PATH=${julia}/lib/julia exported, so
+# workers inherit it → does the failing SpecialFunctions precompile now succeed?
 on:
   workflow_dispatch:
   push:
@@ -11,7 +11,7 @@ on:
       - '.github/workflows/julia-depot-spike.yml'
 
 jobs:
-  env-propagation:
+  direct-binary:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -20,23 +20,20 @@ jobs:
           repository: utensil/blog
           path: blog
       - uses: DeterminateSystems/nix-installer-action@main
-      - name: env propagation + single-pkg precompile
+      - name: direct julia binary + exported LD_LIBRARY_PATH
         run: |
           export JULIA_DEPOT_PATH="$PWD/depot"
           PROJ="$PWD/blog/content/posts/ca-in-julia"
           JL="github:NixOS/nixpkgs/cc6431d5598071f0021efc6c009c79e5b5fe1617#julia_110"
+          JULIA=$(nix build --no-link --print-out-paths "$JL")
+          echo "julia store path = $JULIA"
+          export LD_LIBRARY_PATH="$JULIA/lib/julia:${LD_LIBRARY_PATH:-}"
+          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
 
-          echo "::group::instantiate" ; nix run "$JL" -- --project="$PROJ" -e 'using Pkg; Pkg.instantiate()' ; echo "::endgroup::"
+          echo "== child inherits LLP? =="
+          "$JULIA/bin/julia" -e 'println("MAIN=", get(ENV,"LD_LIBRARY_PATH","UNSET")); run(`bash -c "printf CHILD=; printf %s \"$LD_LIBRARY_PATH\"; echo"`)'
 
-          LIBJ=$(nix run "$JL" -- -e 'print(normpath(joinpath(Sys.BINDIR,"..","lib","julia")))')
-          echo "lib/julia = $LIBJ"
-          ls -l "$LIBJ/libquadmath.so.0" 2>&1
-
-          export LD_LIBRARY_PATH="$LIBJ:${LD_LIBRARY_PATH:-}"
-          echo "== exported LD_LIBRARY_PATH=$LD_LIBRARY_PATH =="
-          echo "== does main + a julia-spawned child see it via nix run? =="
-          nix run "$JL" -- -e 'println("MAIN_LLP=", get(ENV,"LD_LIBRARY_PATH","UNSET")); run(`bash -lc "echo CHILD_LLP=\$LD_LIBRARY_PATH"`)' 2>&1 | grep -E 'MAIN_LLP|CHILD_LLP'
-
-          echo "::group::precompile SpecialFunctions (single, fast) with the env"
-          nix run "$JL" -- --project="$PROJ" -e 'using Pkg; Pkg.precompile("SpecialFunctions")' 2>&1 | tail -10 && echo "PRECOMPILE_SF_OK" || echo "PRECOMPILE_SF_FAILED"
+          echo "::group::instantiate" ; "$JULIA/bin/julia" --project="$PROJ" -e 'using Pkg; Pkg.instantiate()' ; echo "::endgroup::"
+          echo "::group::precompile SpecialFunctions (direct binary + exported LLP)"
+          if "$JULIA/bin/julia" --project="$PROJ" -e 'using Pkg; Pkg.precompile("SpecialFunctions")' 2>&1 | tail -10; then echo "SF_OK"; else echo "SF_FAILED"; fi
           echo "::endgroup::"
