@@ -33,6 +33,41 @@
         installPhase = "runHook preInstall; install -Dm755 pikchr $out/bin/pikchr; runHook postInstall";
       };
 
+      # Official julia 1.10.3 binary (the generic upstream tarball, same one juliaup
+      # installs) — NOT nixpkgs' julia_110. Why: nixpkgs julia can't get GL FBConfigs
+      # headless (GLMakie precompile/render dies "No GLXFBConfigs returned"), but the
+      # official binary's GLFW_jll dlopens the *system* Mesa libGL → renders under xvfb.
+      # Proven: precompiles the full ca-in-julia depot incl. GLMakie headless in ~6min
+      # (infra-land julia-depot-spike). autoPatchelf only rewrites julia's own bundled
+      # ELFs (interpreter + glibc/gcc rpath); GL libs live in the depot + system Mesa,
+      # so the headless-GL behavior the freeze relied on is preserved.
+      juliaOfficialFor = pkgs: system:
+        let
+          sel = {
+            "x86_64-linux"  = { arch = "x86_64";  hash = "sha256-gbkQySL/8OJ64fJW8syAPbgfOWAhUoHt3S1IRyGSjHA="; };
+            "aarch64-linux" = { arch = "aarch64"; hash = "sha256-LVKmGCaHKzFwxl+ZqVS9nSGjEhHLUJSAVtkk+BGgAk8="; };
+          }.${system};
+          shortArch = if system == "x86_64-linux" then "x64" else "aarch64";
+        in pkgs.stdenv.mkDerivation {
+          pname = "julia-official";
+          version = "1.10.3";
+          src = pkgs.fetchurl {
+            url = "https://julialang-s3.julialang.org/bin/linux/${shortArch}/1.10/julia-1.10.3-linux-${sel.arch}.tar.gz";
+            inherit (sel) hash;
+          };
+          # tarball unpacks to julia-1.10.3/ (default sourceRoot).
+          nativeBuildInputs = [ pkgs.autoPatchelfHook ];
+          buildInputs = [ pkgs.stdenv.cc.cc.lib pkgs.zlib pkgs.glibc ];
+          # Don't strip — julia ships its own bundled libs already laid out.
+          dontStrip = true;
+          installPhase = ''
+            runHook preInstall
+            mkdir -p $out
+            cp -a . $out/
+            runHook postInstall
+          '';
+        };
+
       # typst-ts-cli: prebuilt v0.4.1 release binary (the blog fetches it, doesn't
       # build from source) → fetchurl + autoPatchelf for nix.
       typstTsFor = pkgs: system:
@@ -57,11 +92,136 @@
             runHook postInstall
           '';
         };
+      # ── Freeze-free Julia depot for the ca-in-julia post ──────────────────
+      # Two stages so the precompile cache is relocatable-by-construction:
+      #   Stage 1 (FOD): Pkg.instantiate downloads the Manifest-pinned packages +
+      #     artifacts (needs network → fixed-output derivation). Scrub the registry
+      #     clone / logs / scratchspaces so the content (and thus the hash) is stable.
+      #   Stage 2 (normal drv): copy the FOD into $out, Pkg.precompile at $out under
+      #     the headless-GL recipe (Xvfb + mesa.drivers software llvmpipe) so GLMakie's
+      #     .ji embed THIS $out path (valid when used at $out), and autopatchelf the JLL
+      #     executables (ffmpeg etc.) so they get a nix ELF interpreter (no FHS loader).
+      # Build this on x86_64 GH Actions (sandbox=false, Xvfb trivial) → binary cache →
+      # Spindle PULLS it (no depot rebuild on Spindle). Render uses runtime Xvfb.
+      blogDepotSrcFor = pkgs: system:
+        let julia = juliaOfficialFor pkgs system; in
+        pkgs.stdenv.mkDerivation {
+          pname = "blog-depot-src";
+          version = "1.10.3";
+          dontUnpack = true;
+          nativeBuildInputs = [ julia pkgs.cacert pkgs.git pkgs.curl ];
+          outputHashMode = "recursive";
+          outputHashAlgo = "sha256";
+          # Per-system: instantiate pulls per-arch JLL artifacts → content (hash) differs.
+          # aarch64 = local container; x86_64 = Spindle/GH (get its hash from a GH build).
+          outputHash = {
+            "aarch64-linux" = "sha256-1x4J3hFfwP2cubYd72MZ2Utz4yLv23chulQKxHvmyVU=";
+            "x86_64-linux"  = pkgs.lib.fakeHash; # TODO: fill from GH Actions x86_64 build
+          }.${system};
+          buildPhase = ''
+            runHook preBuild
+            export HOME=$TMPDIR
+            export JULIA_DEPOT_PATH=$out
+            export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
+            # Download only — DON'T auto-precompile here (Julia 1.10 instantiate
+            # precompiles by default, and GLMakie's precompile needs GL/Xvfb which
+            # only stage 2 provides). Precompile is stage 2's job, at the final $out.
+            export JULIA_PKG_PRECOMPILE_AUTO=0
+            mkdir -p $out
+            cp ${./blog-depot/Project.toml} Project.toml
+            cp ${./blog-depot/Manifest.toml} Manifest.toml
+            julia --project=. -e 'using Pkg; Pkg.instantiate()'
+            # Scrub non-deterministic bits so the FOD hash is stable across rebuilds:
+            # the registry git clone, logs, scratchspaces, and any compiled cache.
+            rm -rf $out/registries $out/logs $out/scratchspaces $out/clones $out/compiled
+            find $out -name "*.log" -delete 2>/dev/null || true
+            runHook postBuild
+          '';
+          dontInstall = true;
+          dontFixup = true;
+        };
+
+      blogDepotFor = pkgs: system:
+        let
+          julia = juliaOfficialFor pkgs system;
+          src = blogDepotSrcFor pkgs system;
+          xlibs = with pkgs.xorg; [ libX11 libXrandr libXinerama libXcursor libXi libXext libXxf86vm libXfixes ];
+          glLibPath = pkgs.lib.makeLibraryPath ([ pkgs.libGL pkgs.libglvnd pkgs.mesa.drivers pkgs.mesa ] ++ xlibs);
+        in
+        pkgs.stdenv.mkDerivation {
+          pname = "blog-depot";
+          version = "1.10.3";
+          dontUnpack = true;
+          nativeBuildInputs = [ julia pkgs.xorg.xorgserver pkgs.patchelf ];
+          buildInputs = [ pkgs.libGL pkgs.libglvnd pkgs.mesa.drivers pkgs.stdenv.cc.cc.lib pkgs.zlib ] ++ xlibs;
+          # dontFixup: NEVER let stdenv strip/patchelf the depot — modifying artifact .so
+          # libs AFTER precompile invalidates the .ji cache (Julia re-checks them on load).
+          # We patch ONLY the JLL executables' interpreter ourselves, leaving libs pristine.
+          dontFixup = true;
+          buildPhase = ''
+            runHook preBuild
+            export HOME=$TMPDIR
+            mkdir -p $out
+            cp -a ${src}/. $out/
+            chmod -R u+w $out
+            export JULIA_DEPOT_PATH=$out
+            # Offline + a placeholder registry. precompile→instantiate calls
+            # download_default_registries, which downloads ONLY IF reachable_registries()
+            # is empty (offline env does NOT gate it). The FOD has no registry (a real one
+            # drifts daily → unstable hash), so seed a dummy registry here: the check then
+            # passes, and a complete Manifest makes registry *content* irrelevant
+            # (instantiate just verifies the pinned packages are present — they are).
+            export JULIA_PKG_OFFLINE=true
+            mkdir -p $out/registries/Dummy
+            {
+              echo 'name = "Dummy"'
+              echo 'uuid = "00000000-0000-0000-0000-000000000001"'
+              echo 'repo = ""'
+              echo '[packages]'
+            } > $out/registries/Dummy/Registry.toml
+            export LD_LIBRARY_PATH=${glLibPath}
+            export LIBGL_DRIVERS_PATH=${pkgs.mesa.drivers}/lib/dri
+            export LIBGL_ALWAYS_SOFTWARE=1
+            export GALLIUM_DRIVER=llvmpipe
+            export __GLX_VENDOR_LIBRARY_NAME=mesa
+            export DISPLAY=:73
+            rm -f /tmp/.X73-lock /tmp/.X11-unix/X73 2>/dev/null || true
+            ${pkgs.xorg.xorgserver}/bin/Xvfb :73 -screen 0 1280x1024x24 +extension GLX +render -noreset >/tmp/xvfb73.log 2>&1 &
+            XPID=$!
+            sleep 4
+            cp ${./blog-depot/Project.toml} Project.toml
+            cp ${./blog-depot/Manifest.toml} Manifest.toml
+            julia --project=. -e 'using Pkg; Pkg.precompile()'
+            julia --project=. -e 'using GLMakie; println("depot OK: GLMakie loads")'
+            kill $XPID 2>/dev/null || true
+
+            # Patch ONLY the JLL executables' ELF interpreter to nix's loader (the same
+            # one nix gave the julia binary) so they spawn on nix/Spindle (no FHS
+            # /lib*/ld-linux). Their NEEDED .so libs resolve at runtime via $ORIGIN +
+            # the artifact lib dirs Julia puts on LD_LIBRARY_PATH. Leaving the libs
+            # untouched keeps every .ji valid. Mainly fixes FFMPEG_jll's ffmpeg (Makie
+            # spawns it to encode the mp4s); patching all artifact bins is harmless.
+            LOADER=$(patchelf --print-interpreter ${julia}/bin/julia)
+            echo "patching JLL exec interpreters → $LOADER"
+            n=0
+            for exe in $(find $out/artifacts -type f -path '*/bin/*' 2>/dev/null); do
+              if patchelf --print-interpreter "$exe" >/dev/null 2>&1; then
+                patchelf --set-interpreter "$LOADER" "$exe" 2>/dev/null && n=$((n+1)) || true
+              fi
+            done
+            echo "patched $n JLL executables"
+            runHook postBuild
+          '';
+          dontInstall = true;
+        };
     in {
       packages = forAll (system:
         let pkgs = pkgsFor system; in {
           pikchr = pikchrFor pkgs;
           typst-ts-cli = typstTsFor pkgs system;
+          julia-official = juliaOfficialFor pkgs system;
+          blog-depot-src = blogDepotSrcFor pkgs system;
+          blog-depot = blogDepotFor pkgs system;
         });
 
       devShells = forAll (system:

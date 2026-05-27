@@ -1,0 +1,93 @@
+name: blog-depot
+
+# Build the freeze-free Julia depot for the ca-in-julia post on x86_64 (Spindle's arch),
+# precompiled + GL-validated, and publish it as a GitHub-release asset. Spindle pulls the
+# asset instead of building/precompiling the depot itself.
+#
+# First run after changing the Manifest: blog-depot-src is a fixed-output derivation whose
+# per-arch hash isn't known yet (x86_64 starts as fakeHash). The "Lock FOD hash" step
+# detects the mismatch, prints the real hash to the job summary, and STOPS green — copy it
+# into nix/flake.nix (outputHash.x86_64-linux) and push again to build + release.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/blog-depot.yml'
+      - 'nix/flake.nix'
+      - 'nix/blog-depot/**'
+
+jobs:
+  build-depot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write   # create/upload the release
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          # sandbox=false so the depot's stage-2 precompile can start Xvfb + use the
+          # software-GL recipe (matches the validated local setup).
+          extra-conf: |
+            sandbox = false
+
+      - name: Lock FOD hash (x86_64)
+        id: fod
+        working-directory: nix
+        run: |
+          set +e
+          out="$(nix build .#blog-depot-src --no-link --print-out-paths 2>&1)"
+          echo "$out"
+          if echo "$out" | grep -q 'hash mismatch'; then
+            got="$(echo "$out" | grep -oE 'got:[[:space:]]*sha256-[A-Za-z0-9+/=]+' | grep -oE 'sha256-[A-Za-z0-9+/=]+' | head -1)"
+            {
+              echo "## blog-depot-src x86_64 FOD hash"
+              echo ''
+              echo 'The x86_64 FOD hash is not yet locked. Put this in `nix/flake.nix`'
+              echo '(`blogDepotSrcFor` → `outputHash."x86_64-linux"`) and push again:'
+              echo ''
+              echo '```'
+              echo "$got"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "locked=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::x86_64 FOD hash = $got — fill nix/flake.nix and re-run"
+            exit 0
+          fi
+          # Built cleanly → hash already correct.
+          echo "locked=true" >> "$GITHUB_OUTPUT"
+
+      - name: Build depot
+        if: steps.fod.outputs.locked == 'true'
+        working-directory: nix
+        run: |
+          depot="$(nix build .#blog-depot --no-link --print-out-paths)"
+          echo "DEPOT_PATH=$depot" >> "$GITHUB_ENV"
+          echo "depot: $depot"
+          du -sh "$depot"
+
+      - name: Package depot (tar.zst at its store path)
+        if: steps.fod.outputs.locked == 'true'
+        run: |
+          base="$(basename "$DEPOT_PATH")"
+          # Preserve the absolute /nix/store path so consumers can place the depot back
+          # at the exact path its precompile caches (.ji) reference.
+          tar -C /nix/store -cf - "$base" \
+            | nix run nixpkgs#zstd -- -19 -T0 -o blog-depot-x86_64.tar.zst
+          ls -lh blog-depot-x86_64.tar.zst
+          echo "$DEPOT_PATH" > blog-depot-x86_64.storepath
+          sha256sum blog-depot-x86_64.tar.zst | tee blog-depot-x86_64.sha256
+
+      - name: Publish to release
+        if: steps.fod.outputs.locked == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="blog-depot-x86_64"
+          gh release view "$tag" >/dev/null 2>&1 \
+            && gh release upload "$tag" blog-depot-x86_64.tar.zst blog-depot-x86_64.storepath blog-depot-x86_64.sha256 --clobber \
+            || gh release create "$tag" blog-depot-x86_64.tar.zst blog-depot-x86_64.storepath blog-depot-x86_64.sha256 \
+                 --title "blog-depot (x86_64)" \
+                 --notes "Precompiled freeze-free Julia depot for content/posts/ca-in-julia (julia 1.10.3, GLMakie). Extract at the store path in blog-depot-x86_64.storepath; consume read-only as JULIA_DEPOT_PATH."
