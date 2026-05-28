@@ -195,6 +195,15 @@
             julia --project=. -e 'using GLMakie; println("depot OK: GLMakie loads")'
             kill $XPID 2>/dev/null || true
 
+            # The Dummy registry was only needed to satisfy reachable_registries() during
+            # this build's offline precompile. At RUNTIME (Quarto + Spindle) a real
+            # registry is wanted: Quarto's ensureQuartoNotebookRunnerEnvironment runs
+            # Pkg.up → check_registered, which fails if the only reachable registry is
+            # the empty Dummy AND only_if_empty=true keeps Pkg from downloading the real
+            # one. Removing the Dummy leaves reachable_registries() empty so Pkg installs
+            # General (writable depot path on Spindle) and check_registered succeeds.
+            rm -rf $out/registries/Dummy
+
             # Patch ONLY the JLL executables' ELF interpreter to nix's loader (the same
             # one nix gave the julia binary) so they spawn on nix/Spindle (no FHS
             # /lib*/ld-linux). Their NEEDED .so libs resolve at runtime via $ORIGIN +
