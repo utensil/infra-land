@@ -122,12 +122,13 @@ jobs:
           echo "$env_out" > blog-render-env-x86_64.storepath
           sha256sum blog-render-env-x86_64.nar.zst | tee blog-render-env-x86_64.sha256
 
-      - name: Publish to release
+      - name: Publish to R2 (utensil-tngl bucket via wrangler)
         if: steps.fod.outputs.locked == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: |
-          tag="blog-depot-x86_64"
           assets=(
             blog-depot-x86_64.tar.zst
             blog-depot-x86_64.storepath
@@ -136,8 +137,8 @@ jobs:
             blog-render-env-x86_64.storepath
             blog-render-env-x86_64.sha256
           )
-          gh release view "$tag" >/dev/null 2>&1 \
-            && gh release upload "$tag" "${assets[@]}" --clobber \
-            || gh release create "$tag" "${assets[@]}" \
-                 --title "blog-depot (x86_64)" \
-                 --notes "Precompiled freeze-free Julia depot + render-env closure for content/posts/ca-in-julia (julia 1.10.3, GLMakie, nix mesa/Xvfb). Consume: tar -xf blog-depot-x86_64.tar.zst into /nix/store; zstd -d blog-render-env-x86_64.nar.zst | nix-store --import; source <render-env-storepath>/env.sh; JULIA_DEPOT_PATH=<writable>:<depot-storepath>."
+          for f in "${assets[@]}"; do
+            echo "uploading $f → r2://$R2_BUCKET/$f"
+            npx --yes wrangler@latest r2 object put "$R2_BUCKET/$f" --file "$f" --remote
+          done
+          echo "all uploaded; public URL base: ${{ secrets.R2_PUBLIC_URL }}"
