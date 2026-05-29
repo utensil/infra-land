@@ -146,4 +146,41 @@ jobs:
             echo "uploading $f → s3://$R2_BUCKET/$f"
             aws --endpoint-url "$R2_ENDPOINT" s3 cp "$f" "s3://$R2_BUCKET/$f"
           done
+
+          # Generate + upload manifest.json so consumers (blog freeze-free) only need
+          # R2_PUBLIC_URL — the manifest tells them every other filename, store path,
+          # and integrity hash. Renames on the infra side just edit infra-land; blog
+          # rediscovers automatically.
+          depot_store="$(cat blog-depot-x86_64.storepath)"
+          env_store="$(cat blog-render-env-x86_64.storepath)"
+          depot_sha="$(cut -d' ' -f1 blog-depot-x86_64.sha256)"
+          env_sha="$(cut -d' ' -f1 blog-render-env-x86_64.sha256)"
+          depot_size=$(stat -c%s blog-depot-x86_64.tar.zst)
+          env_size=$(stat -c%s blog-render-env-x86_64.nar.zst)
+          cat > manifest.json <<EOF
+          {
+            "version": 1,
+            "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "base_url": "${{ secrets.R2_PUBLIC_URL }}",
+            "assets": {
+              "depot": {
+                "tar": "blog-depot-x86_64.tar.zst",
+                "store_path": "$depot_store",
+                "sha256": "$depot_sha",
+                "size_bytes": $depot_size
+              },
+              "render_env": {
+                "nar": "blog-render-env-x86_64.nar.zst",
+                "store_path": "$env_store",
+                "sha256": "$env_sha",
+                "size_bytes": $env_size
+              }
+            }
+          }
+          EOF
+          # Validate, then upload with a short cache TTL (so blog re-discovers fresh names quickly)
+          python3 -m json.tool manifest.json >/dev/null
+          aws --endpoint-url "$R2_ENDPOINT" s3 cp manifest.json "s3://$R2_BUCKET/manifest.json" \
+            --content-type 'application/json' --cache-control 'public, max-age=300'
+          echo "manifest uploaded:"; cat manifest.json
           echo "all uploaded; public URL base: ${{ secrets.R2_PUBLIC_URL }}"
