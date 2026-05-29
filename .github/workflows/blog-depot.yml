@@ -106,14 +106,38 @@ jobs:
           echo "$DEPOT_PATH" > blog-depot-x86_64.storepath
           sha256sum blog-depot-x86_64.tar.zst | tee blog-depot-x86_64.sha256
 
+      - name: Build + package render-env closure (julia + GL + Xvfb + env.sh)
+        if: steps.fod.outputs.locked == 'true'
+        working-directory: nix
+        run: |
+          env_out="$(nix build .#blog-render-env --no-link --print-out-paths)"
+          echo "render-env: $env_out"
+          # Export the closure (env_out + julia-official + mesa.drivers + libGL + X libs + …)
+          # as a NAR so Spindle can `nix-store --import` and have every referenced path land
+          # in /nix/store under the same names the env.sh hard-codes.
+          nix-store --export $(nix-store -qR "$env_out") \
+            | nix run nixpkgs#zstd -- -19 -T0 -o ../blog-render-env-x86_64.nar.zst
+          cd ..
+          ls -lh blog-render-env-x86_64.nar.zst
+          echo "$env_out" > blog-render-env-x86_64.storepath
+          sha256sum blog-render-env-x86_64.nar.zst | tee blog-render-env-x86_64.sha256
+
       - name: Publish to release
         if: steps.fod.outputs.locked == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="blog-depot-x86_64"
+          assets=(
+            blog-depot-x86_64.tar.zst
+            blog-depot-x86_64.storepath
+            blog-depot-x86_64.sha256
+            blog-render-env-x86_64.nar.zst
+            blog-render-env-x86_64.storepath
+            blog-render-env-x86_64.sha256
+          )
           gh release view "$tag" >/dev/null 2>&1 \
-            && gh release upload "$tag" blog-depot-x86_64.tar.zst blog-depot-x86_64.storepath blog-depot-x86_64.sha256 --clobber \
-            || gh release create "$tag" blog-depot-x86_64.tar.zst blog-depot-x86_64.storepath blog-depot-x86_64.sha256 \
+            && gh release upload "$tag" "${assets[@]}" --clobber \
+            || gh release create "$tag" "${assets[@]}" \
                  --title "blog-depot (x86_64)" \
-                 --notes "Precompiled freeze-free Julia depot for content/posts/ca-in-julia (julia 1.10.3, GLMakie). Extract at the store path in blog-depot-x86_64.storepath; consume read-only as JULIA_DEPOT_PATH."
+                 --notes "Precompiled freeze-free Julia depot + render-env closure for content/posts/ca-in-julia (julia 1.10.3, GLMakie, nix mesa/Xvfb). Consume: tar -xf blog-depot-x86_64.tar.zst into /nix/store; zstd -d blog-render-env-x86_64.nar.zst | nix-store --import; source <render-env-storepath>/env.sh; JULIA_DEPOT_PATH=<writable>:<depot-storepath>."

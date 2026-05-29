@@ -92,6 +92,38 @@
             runHook postInstall
           '';
         };
+      # Pre-bundled render env (official julia + nix mesa.drivers/llvmpipe + libGL +
+      # X libs + Xvfb + env.sh) so Spindle can `nix-store --import` the closure and
+      # source env.sh instead of running `nix develop` at every render. Avoids the
+      # cold-cache julia-official + nix-shell-env build on each fresh Spindle nixery
+      # container (which can stretch a 5min render to 20min+).
+      blogRenderEnvFor = pkgs: system:
+        let
+          julia = juliaOfficialFor pkgs system;
+          xlibs = with pkgs.xorg; [ libX11 libXrandr libXinerama libXcursor libXi libXext libXxf86vm libXfixes ];
+          glLibPath = pkgs.lib.makeLibraryPath ([ pkgs.libGL pkgs.libglvnd pkgs.mesa.drivers pkgs.mesa ] ++ xlibs);
+        in pkgs.stdenv.mkDerivation {
+          pname = "blog-render-env";
+          version = "1.0.0";
+          dontUnpack = true;
+          buildPhase = ''
+            mkdir -p $out/bin
+            ln -s ${julia}/bin/julia $out/bin/julia
+            ln -s ${pkgs.xorg.xorgserver}/bin/Xvfb $out/bin/Xvfb
+            {
+              printf 'ENV_OUT="%s"\n' "$out"
+              printf 'export PATH="$ENV_OUT/bin:$PATH"\n'
+              printf 'export LD_LIBRARY_PATH="%s''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"\n' '${glLibPath}'
+              printf 'export LIBGL_DRIVERS_PATH="%s/lib/dri"\n' '${pkgs.mesa.drivers}'
+              printf 'export LIBGL_ALWAYS_SOFTWARE=1\n'
+              printf 'export GALLIUM_DRIVER=llvmpipe\n'
+              printf 'export __GLX_VENDOR_LIBRARY_NAME=mesa\n'
+            } > $out/env.sh
+          '';
+          dontInstall = true;
+          dontFixup = true;
+        };
+
       # ── Freeze-free Julia depot for the ca-in-julia post ──────────────────
       # Two stages so the precompile cache is relocatable-by-construction:
       #   Stage 1 (FOD): Pkg.instantiate downloads the Manifest-pinned packages +
@@ -229,6 +261,7 @@
           pikchr = pikchrFor pkgs;
           typst-ts-cli = typstTsFor pkgs system;
           julia-official = juliaOfficialFor pkgs system;
+          blog-render-env = blogRenderEnvFor pkgs system;
           blog-depot-src = blogDepotSrcFor pkgs system;
           blog-depot = blogDepotFor pkgs system;
         });
