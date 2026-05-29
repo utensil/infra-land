@@ -122,13 +122,18 @@ jobs:
           echo "$env_out" > blog-render-env-x86_64.storepath
           sha256sum blog-render-env-x86_64.nar.zst | tee blog-render-env-x86_64.sha256
 
-      - name: Publish to R2 (utensil-tngl bucket via wrangler)
+      - name: Publish to R2 (utensil-tngl bucket via aws-cli, multipart-safe)
         if: steps.fod.outputs.locked == 'true'
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: |
+          # aws-cli's S3 client handles multipart uploads automatically for files > 8 MiB
+          # by default — bypasses wrangler's 300 MiB cap. R2's S3-compatible endpoint
+          # uses Signature V4; AWS_DEFAULT_REGION=auto is the conventional R2 sentinel.
           assets=(
             blog-depot-x86_64.tar.zst
             blog-depot-x86_64.storepath
@@ -138,7 +143,7 @@ jobs:
             blog-render-env-x86_64.sha256
           )
           for f in "${assets[@]}"; do
-            echo "uploading $f → r2://$R2_BUCKET/$f"
-            npx --yes wrangler@latest r2 object put "$R2_BUCKET/$f" --file "$f" --remote
+            echo "uploading $f → s3://$R2_BUCKET/$f"
+            aws --endpoint-url "$R2_ENDPOINT" s3 cp "$f" "s3://$R2_BUCKET/$f"
           done
           echo "all uploaded; public URL base: ${{ secrets.R2_PUBLIC_URL }}"
