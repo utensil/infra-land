@@ -801,9 +801,9 @@ q:
 prep-kiro:
     which kiro-cli || brew install kiro-cli
 
-# Install Tencent CodeBuddy CLI.
-prep-cbc: prep-node
-    which cbc || npm install -g @tencent-ai/codebuddy-code
+# Install Tencent CodeBuddy CLI with bun.
+prep-cbc:
+    bun add -g @tencent-ai/codebuddy-code
 
 # requires too many permissions to my GitHub account, rejected
 #
