@@ -118,12 +118,12 @@ prep-jw:
 # AGENT-NOTE: check-dirs now writes hash files to /tmp/jw/ with timestamped, descriptive names (e.g. /tmp/jw/<timestamp>-left-<leftdirname>.hash.jw)
 # This avoids polluting or failing on read-only source/dest dirs, and is safe for diffing.
 #
-# Compare source and destination directories with check-dirs.py.
+# Compare source and destination directories with the repo-local check-dirs helper.
 check-dirs SRC DST *PARAMS="-l -p":
     #!/usr/bin/env bash
     # AGENT-NOTE: Writes hash files to /tmp/jw/ to avoid polluting or failing on read-only source/dest dirs
     set -e
-    uv run ./check-dirs.py "{{SRC}}" "{{DST}}" {{PARAMS}}
+    tools/file/check-dirs.py "{{SRC}}" "{{DST}}" {{PARAMS}}
 
 # lms sync -n SRC DST
 # -n - no delete
