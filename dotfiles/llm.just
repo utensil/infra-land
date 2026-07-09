@@ -9,7 +9,7 @@ prep-aichat:
     #!/usr/bin/env bash
     which aichat || brew install aichat
     mkdir -p ~/.config/aichat
-    dotfiles/bin/render_yaml.py dotfiles/.config/aichat/config.in.yaml ~/.config/aichat/config.yaml
+    tools/config/render_yaml.py dotfiles/.config/aichat/config.in.yaml ~/.config/aichat/config.yaml
     cat ~/.config/aichat/config.yaml|sd 'api_key:(.*)' 'api_key: <hidden>'
 
 # Run aichat after syncing config.
@@ -30,7 +30,7 @@ prep-aicode:
 # Render and deploy aichat configuration.
 sync-aichat:
     #!/usr/bin/env bash
-    dotfiles/bin/render_yaml.py dotfiles/.config/aichat/config.in.yaml ~/.config/aichat/config.yaml
+    tools/config/render_yaml.py dotfiles/.config/aichat/config.in.yaml ~/.config/aichat/config.yaml
     cat ~/.config/aichat/config.yaml|sd 'api_key:(.*)' 'api_key: <hidden>'
 
 # Install aider MCP helper and seed Claude config.
@@ -363,7 +363,7 @@ prep-llm:
 sync-llm:
     #!/usr/bin/env bash
     dir_llm=`dirname "$(uvx llm logs path)"`
-    dotfiles/bin/render_yaml.py dotfiles/.config/llm/extra-openai-models.yaml.in $dir_llm/extra-openai-models.yaml
+    tools/config/render_yaml.py dotfiles/.config/llm/extra-openai-models.yaml.in $dir_llm/extra-openai-models.yaml
     cat $dir_llm/extra-openai-models.yaml
     uvx llm keys set env_key --value ${OPENAI_API_KEY}
     uvx llm models default env
@@ -710,7 +710,7 @@ prep-gemini:
 prep-oc:
     bun add -g opencode-ai
     # mkdir -p ~/.config/opencode
-    # dotfiles/bin/render_yaml.py --json dotfiles/.config/opencode/opencode.in.yaml ~/.config/opencode/opencode.json
+    # tools/config/render_yaml.py --json dotfiles/.config/opencode/opencode.in.yaml ~/.config/opencode/opencode.json
     # just check-oc
 
 # Install pi coding agent.

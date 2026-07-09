@@ -12,7 +12,7 @@ infra-land/
 ├── dotfiles/
 │   ├── *.just            # Task files by theme (13 files)
 │   ├── .config/          # App configs (ghostty, helix, zellij, jj, tmux, etc.)
-│   ├── bin/              # Scripts (aicode, aider, render_yaml.py, etc.)
+│   ├── bin/              # Deployable scripts (aicode, aider, etc.)
 │   └── .*                # Shell configs (.envrc, .bashrc, .zshrc, etc.)
 └── stacks/               # Docker Compose stacks (14 services)
 ```
