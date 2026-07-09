@@ -45,7 +45,7 @@ prep-br:
 # Cmd+Shift+P to open Command Palette
 # Cmd+G to go to path
 # / to search by regex, \ by substring, then up/down to navigate between search results
-# Set /Users/utensil/Library/Mobile Documents/com~apple~CloudDocs to favorites for iCloud docs
+# Set ~/Library/Mobile Documents/com~apple~CloudDocs to favorites for iCloud docs
 # for long copy/move operations, = to open the operation queue (with per-task and per-file progress bars)
 # Cmd+Y to preview a file, Cmd+Enter to select an app to open the file
 # Opt+1: Volumes, 2: Favorites, 3: Recent Locations, 0: parent directories
