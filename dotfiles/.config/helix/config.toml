@@ -72,6 +72,8 @@ mode.select = "SELECT"
 [editor.lsp]
 # Display LSP progress messages below statusline
 display-messages = true
+# Also gives lean-helix-view a position-bearing request after cursor movement.
+auto-document-highlight = true
 # Disable automatically popups of signature parameter help
 auto-signature-help = false
 # Don't display inlay hints be default

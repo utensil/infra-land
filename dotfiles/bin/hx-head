@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+helix_head_dir="${HELIX_HEAD_DIR:-$HOME/projects/helix-head}"
+export HELIX_RUNTIME="${HELIX_RUNTIME:-$helix_head_dir/runtime}"
+exec "$HOME/.local/share/helix-head/bin/hx" "$@"

@@ -1,3 +1,12 @@
+# Route Lean through the terminal goal-view proxy.
+[language-server.lean]
+command = "lean-helix-view"
+args = ["proxy", "--", "lake", "serve"]
+
+[[language]]
+name = "lean"
+language-servers = ["lean"]
+
 # https://github.com/estin/simple-completion-language-server
 # introduce new language server
 [language-server.scls]
@@ -92,4 +101,3 @@ auto-format = false
 # [[language]]
 # name = "rust"
 # language-servers = [ "llmvm-codeassist-rust" ]
-

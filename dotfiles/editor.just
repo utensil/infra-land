@@ -14,6 +14,35 @@ prep-hx:
     hx --grammar fetch
     hx --grammar build
 
+# Install the terminal Lean infoview and transparent Helix LSP proxy.
+prep-lean-helix-view:
+    cargo install --locked --git https://github.com/utensil/lean-helix-view --rev 41e3f50c69057a28ac43929b677f6f832156a48e lean-helix-view
+
+# Build current upstream Helix from a reusable shallow checkout. Keep the
+# checkout because the installed binary needs its matching runtime tree.
+prep-helix-head:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    helix_head_dir="{{home_directory()}}/projects/helix-head"
+    if [[ -d "$helix_head_dir/.git" ]]; then
+        git -C "$helix_head_dir" checkout master
+        git -C "$helix_head_dir" pull --ff-only origin master
+    else
+        gh repo clone helix-editor/helix "$helix_head_dir" -- --depth 1
+    fi
+    cargo install --force --path "$helix_head_dir/helix-term" --locked --root "{{home_directory()}}/.local/share/helix-head"
+    install -m 0755 "{{justfile_directory()}}/dotfiles/bin/hx-head" "{{home_directory()}}/.local/bin/hx-head"
+    export HELIX_RUNTIME="$helix_head_dir/runtime"
+    "{{home_directory()}}/.local/bin/hx-head" --grammar fetch
+    "{{home_directory()}}/.local/bin/hx-head" --grammar build
+    "{{home_directory()}}/.local/bin/hx-head" --version
+
+# Open a project with current upstream Helix and its matching runtime.
+hx-head PROJ="forest" *PARAMS="":
+    #!/usr/bin/env bash
+    cd "{{home_directory()}}/projects/{{PROJ}}"
+    "{{home_directory()}}/.local/bin/hx-head" {{PARAMS}}
+
 # Symlink Helix config and install its theme.
 prep-hx-conf:
     just link-conf helix
@@ -346,4 +375,3 @@ prep-lb:
 # Start Livebook on the configured local ports.
 lb:
     LIVEBOOK_IFRAME_PORT=58081 livebook server --port 58080
-
