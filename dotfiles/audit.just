@@ -1,4 +1,26 @@
 # Security audit tasks
+
+sec_lan_allowlist := env("SEC_LAN_ALLOWLIST", "54352")
+sec_lan_if := env("SEC_LAN_IF", "")
+
+## Security: LAN exposure
+
+# Audit LAN-reachable TCP listeners and firewall posture.
+audit-lan ALLOWLIST=sec_lan_allowlist LAN_IF=sec_lan_if:
+    tools/audit/sec-lan-audit.py audit --allowlist "{{ALLOWLIST}}" --lan-if "{{LAN_IF}}"
+
+# Audit LAN exposure and fail if any non-allowlisted listener is unprotected.
+audit-lan-strict ALLOWLIST=sec_lan_allowlist LAN_IF=sec_lan_if:
+    tools/audit/sec-lan-audit.py strict --allowlist "{{ALLOWLIST}}" --lan-if "{{LAN_IF}}"
+
+# Enable firewall/stealth mode and block current non-allowlisted LAN listeners with PF.
+audit-lan-fix ALLOWLIST=sec_lan_allowlist LAN_IF=sec_lan_if:
+    sudo tools/audit/sec-lan-audit.py fix --allowlist "{{ALLOWLIST}}" --lan-if "{{LAN_IF}}"
+
+# Verify LAN listener protection after hardening.
+audit-lan-verify ALLOWLIST=sec_lan_allowlist LAN_IF=sec_lan_if:
+    sudo tools/audit/sec-lan-audit.py verify --allowlist "{{ALLOWLIST}}" --lan-if "{{LAN_IF}}"
+
 # Audit for compromised litellm versions (supply chain attack, March 2026)
 # Affected versions: v1.82.7 and v1.82.8 (published 2026-03-24)
 
