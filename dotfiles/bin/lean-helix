@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly MIN_HERDR_VERSION="0.7.5"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly INFRA_LAND_DIR="${INFRA_LAND_DIR:-$(cd "$script_dir/../.." && pwd -P)}"
+
+die() {
+  printf 'lean-helix: %s\n' "$*" >&2
+  exit 1
+}
+
+version_ge() {
+  awk -v current="$1" -v minimum="$2" 'BEGIN {
+    split(current, c, "."); split(minimum, m, ".")
+    for (i = 1; i <= 3; i++) {
+      if ((c[i] + 0) > (m[i] + 0)) exit 0
+      if ((c[i] + 0) < (m[i] + 0)) exit 1
+    }
+    exit 0
+  }'
+}
+
+run_prep() {
+  local recipe="$1"
+  printf 'Preparing Lean prerequisite with %s...\n' "$recipe"
+  (cd "$INFRA_LAND_DIR" && just "$recipe")
+}
+
+prepare_tools() {
+  command -v just >/dev/null 2>&1 || die "just is required"
+  command -v jq >/dev/null 2>&1 || die "jq is required"
+
+  local needs_herdr=false
+  local herdr_version=""
+  if ! command -v herdr >/dev/null 2>&1; then
+    needs_herdr=true
+  else
+    herdr_version="$(herdr --version | awk '{print $2}')"
+    version_ge "$herdr_version" "$MIN_HERDR_VERSION" || needs_herdr=true
+  fi
+
+  if [[ "$needs_herdr" == true ]]; then
+    if command -v herdr >/dev/null 2>&1 && \
+      herdr status server --json 2>/dev/null | jq -e '.running == true' >/dev/null; then
+      herdr server stop
+    fi
+    run_prep prep-herdr
+  fi
+
+  command -v hx-head >/dev/null 2>&1 || run_prep prep-helix-head
+  command -v lean-helix-view >/dev/null 2>&1 || run_prep prep-lean-helix-view
+
+  command -v herdr >/dev/null 2>&1 || die "herdr installation failed"
+  command -v hx-head >/dev/null 2>&1 || die "hx-head installation failed"
+  command -v lean-helix-view >/dev/null 2>&1 || die "lean-helix-view installation failed"
+
+  herdr_version="$(herdr --version | awk '{print $2}')"
+  version_ge "$herdr_version" "$MIN_HERDR_VERSION" || \
+    die "herdr $herdr_version is below required $MIN_HERDR_VERSION"
+
+  local hx_health
+  hx_health="$(hx-head --health lean 2>&1 || true)"
+  if ! printf '%s' "$hx_health" | grep -q 'lean-helix-view'; then
+    run_prep prep-hx-conf
+    hx_health="$(hx-head --health lean 2>&1 || true)"
+  fi
+  printf '%s' "$hx_health" | grep -q 'lean-helix-view' || \
+    die "hx-head is not configured to use lean-helix-view"
+}
+
+start_herdr() {
+  local server_status
+  server_status="$(herdr status server --json 2>/dev/null || true)"
+  if printf '%s' "$server_status" | jq -e '.running == true' >/dev/null 2>&1; then
+    local server_version
+    server_version="$(printf '%s' "$server_status" | jq -r '.version // "0.0.0"')"
+    if ! version_ge "$server_version" "$MIN_HERDR_VERSION"; then
+      herdr server stop
+      server_status=""
+    fi
+  fi
+
+  if ! printf '%s' "$server_status" | jq -e '.running == true and .compatible == true' >/dev/null 2>&1; then
+    nohup herdr server >/dev/null 2>&1 &
+    for _ in {1..50}; do
+      if herdr status server --json 2>/dev/null | jq -e '.running == true and .compatible == true' >/dev/null; then
+        return
+      fi
+      sleep 0.1
+    done
+    die "Herdr server did not become ready"
+  fi
+}
+
+launch_workspace() {
+  local worktree="${1:-$PWD}"
+  local target="${2:-.}"
+  [[ -d "$worktree" ]] || die "worktree is not a directory: $worktree"
+  worktree="$(cd "$worktree" && pwd -P)"
+  [[ -f "$worktree/lean-toolchain" ]] || die "missing lean-toolchain in $worktree"
+  [[ -f "$worktree/lakefile.toml" || -f "$worktree/lakefile.lean" ]] || \
+    die "missing lakefile.toml or lakefile.lean in $worktree"
+  if [[ "$target" != "." && "$target" != /* && ! -e "$worktree/$target" ]]; then
+    die "file does not exist in worktree: $target"
+  fi
+  if [[ "$target" == /* && ! -e "$target" ]]; then
+    die "file does not exist: $target"
+  fi
+
+  prepare_tools
+  start_herdr
+
+  local label workspaces existing_id
+  label="$(basename "$worktree")-lean"
+  workspaces="$(herdr workspace list)"
+  existing_id="$(printf '%s' "$workspaces" | jq -r --arg label "$label" '.result.workspaces[] | select(.label == $label) | .workspace_id' | head -n 1)"
+  if [[ -n "$existing_id" ]]; then
+    herdr workspace focus "$existing_id" >/dev/null
+    printf 'Reused Herdr workspace %s (%s).\n' "$label" "$existing_id"
+    return
+  fi
+
+  local created workspace_id editor_pane split goal_pane
+  created="$(herdr workspace create --cwd "$worktree" --label "$label" --no-focus)"
+  workspace_id="$(printf '%s' "$created" | jq -r '.result.workspace.workspace_id')"
+  editor_pane="$(printf '%s' "$created" | jq -r '.result.root_pane.pane_id')"
+  [[ -n "$workspace_id" && "$workspace_id" != null ]] || die "Herdr did not return a workspace id"
+  [[ -n "$editor_pane" && "$editor_pane" != null ]] || die "Herdr did not return an editor pane id"
+
+  split="$(herdr pane split "$editor_pane" --direction right --ratio 0.6 --cwd "$worktree" --no-focus)"
+  goal_pane="$(printf '%s' "$split" | jq -r '.result.pane.pane_id')"
+  [[ -n "$goal_pane" && "$goal_pane" != null ]] || die "Herdr did not return a goal pane id"
+
+  herdr pane run "$goal_pane" lean-helix-view watch >/dev/null
+  herdr pane run "$editor_pane" hx-head "$target" >/dev/null
+  herdr workspace focus "$workspace_id" >/dev/null
+  printf 'Created Herdr workspace %s (%s): hx-head | Lean goals.\n' "$label" "$workspace_id"
+}
+
+case "${1:-}" in
+  prepare)
+    prepare_tools
+    printf 'Lean Helix tools are ready.\n'
+    ;;
+  launch)
+    shift
+    launch_workspace "$@"
+    ;;
+  *)
+    die "usage: lean-helix prepare | lean-helix launch [WORKTREE] [FILE]"
+    ;;
+esac

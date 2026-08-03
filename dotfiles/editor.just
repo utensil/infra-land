@@ -18,6 +18,14 @@ prep-hx:
 prep-lean-helix-view:
     cargo install --locked --git https://github.com/utensil/lean-helix-view --rev 41e3f50c69057a28ac43929b677f6f832156a48e lean-helix-view
 
+# Prepare the reusable Herdr + current Helix + Lean goal-view toolchain.
+prep-lean:
+    "{{justfile_directory()}}/dotfiles/bin/lean-helix" prepare
+
+# Open a Lean worktree in current Helix with a live Herdr goal pane.
+lean WORKTREE=invocation_directory() FILE=".":
+    "{{justfile_directory()}}/dotfiles/bin/lean-helix" launch "{{WORKTREE}}" "{{FILE}}"
+
 # Build current upstream Helix from a reusable shallow checkout. Keep the
 # checkout because the installed binary needs its matching runtime tree.
 prep-helix-head:
