@@ -33,6 +33,9 @@ rename_tab = "prefix+,"
 close_tab = "prefix+&"
 
 [experimental]
+# Herdr Browser renders Chromium frames through the Kitty graphics protocol.
+kitty_graphics = true
+
 # Allow Paddy (and other CLI agents) to invoke herdr from inside a herdr pane
 # for diagnostics. Without this, `herdr ...` fails with "nested herdr is
 # disabled by default" and routed bots can't probe the live server.

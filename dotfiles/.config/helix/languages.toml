@@ -1,3 +1,7 @@
+[[grammar]]
+name = "forester"
+source = { git = "https://github.com/kentookura/tree-sitter-forester", rev = "4b1c6828cc77c62750302e1a9582dc098d74e227" }
+
 # Route Lean through the terminal goal-view proxy.
 [language-server.lean]
 command = "lean-helix-view"
@@ -48,22 +52,16 @@ roots = []
 auto-format = false
 language-servers = [ "scls" ]
 
-# based on https://github.com/helix-editor/helix/issues/5365
-[[language]]
-name = "forester"
-scope = "source.tree"
-injection-regex = "forester"
-file-types = ["tree"]
-roots = [ "forest.toml" ]
-comment-tokens = "%"
-indent = { tab-width = 2, unit = "  " }
-grammar = "forester"
-
 # https://writewithharper.com/docs/integrations/helix#Optional-Configuration
 [language-server.harper-ls]
 command = "harper-ls"
 args = ["--stdio"]
 config = { harper-ls = { diagnosticSeverity = "error", linters = { long_sentences = false } } }
+
+# Forester's documented LSP plus optional pinned Tree-sitter highlighting.
+[language-server.forester-lsp]
+command = "forester"
+args = ["lsp"]
 
 # https://github.com/blopker/codebook?tab=readme-ov-file#helix
 [language-server.codebook]
@@ -78,7 +76,11 @@ language-servers = ["marksman", "harper-ls", "scls"]
 
 [[language]]
 name = "forester"
-language-servers = ["harper-ls"]
+scope = "source.forester"
+file-types = ["tree"]
+roots = ["forest.toml"]
+comment-tokens = "%"
+language-servers = ["forester-lsp", "harper-ls"]
 
 [[language]]
 name = "css"
