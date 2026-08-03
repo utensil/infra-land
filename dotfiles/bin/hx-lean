@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+helix_lean_dir="${HELIX_LEAN_DIR:-$HOME/projects/helix-lean}"
+export HELIX_RUNTIME="${HELIX_RUNTIME:-$helix_lean_dir/runtime}"
+exec "$HOME/.local/share/helix-lean/bin/hx" "$@"

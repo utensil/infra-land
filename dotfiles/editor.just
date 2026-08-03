@@ -18,11 +18,11 @@ prep-hx:
 prep-lean-helix-view:
     cargo install --locked --git https://github.com/utensil/lean-helix-view --rev 41e3f50c69057a28ac43929b677f6f832156a48e lean-helix-view
 
-# Prepare the reusable Herdr + current Helix + Lean goal-view toolchain.
+# Prepare the reusable Herdr + dedicated Lean Helix + goal-view toolchain.
 prep-lean:
     "{{justfile_directory()}}/dotfiles/bin/lean-helix" prepare
 
-# Open a Lean worktree in current Helix with a live Herdr goal pane.
+# Open a Lean worktree in dedicated Lean Helix with a live Herdr goal pane.
 lean WORKTREE=invocation_directory() FILE=".":
     "{{justfile_directory()}}/dotfiles/bin/lean-helix" launch "{{WORKTREE}}" "{{FILE}}"
 
@@ -32,9 +32,16 @@ prep-helix-head:
     #!/usr/bin/env bash
     set -euo pipefail
     helix_head_dir="{{home_directory()}}/projects/helix-head"
+    helix_head_repo="https://github.com/helix-editor/helix.git"
     if [[ -d "$helix_head_dir/.git" ]]; then
+        if git -C "$helix_head_dir" remote get-url upstream >/dev/null 2>&1; then
+            git -C "$helix_head_dir" remote set-url upstream "$helix_head_repo"
+        else
+            git -C "$helix_head_dir" remote add upstream "$helix_head_repo"
+        fi
+        git -C "$helix_head_dir" fetch --depth 1 upstream master
         git -C "$helix_head_dir" checkout master
-        git -C "$helix_head_dir" pull --ff-only origin master
+        git -C "$helix_head_dir" merge --ff-only upstream/master
     else
         gh repo clone helix-editor/helix "$helix_head_dir" -- --depth 1
     fi
@@ -44,6 +51,28 @@ prep-helix-head:
     "{{home_directory()}}/.local/bin/hx-head" --grammar fetch
     "{{home_directory()}}/.local/bin/hx-head" --grammar build
     "{{home_directory()}}/.local/bin/hx-head" --version
+
+# Build the Lean-focused Helix fork with focus-following goal refresh.
+prep-helix-lean:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    helix_lean_dir="{{home_directory()}}/projects/helix-lean"
+    helix_lean_branch="lean-goal-focus"
+    helix_lean_repo="https://github.com/utensil/helix.git"
+    if [[ -d "$helix_lean_dir/.git" ]]; then
+        git -C "$helix_lean_dir" remote set-url origin "$helix_lean_repo"
+        git -C "$helix_lean_dir" fetch --depth 1 origin "$helix_lean_branch"
+        git -C "$helix_lean_dir" checkout "$helix_lean_branch"
+        git -C "$helix_lean_dir" merge --ff-only "origin/$helix_lean_branch"
+    else
+        gh repo clone utensil/helix "$helix_lean_dir" -- --depth 1 --branch "$helix_lean_branch"
+    fi
+    cargo install --force --path "$helix_lean_dir/helix-term" --locked --root "{{home_directory()}}/.local/share/helix-lean"
+    install -m 0755 "{{justfile_directory()}}/dotfiles/bin/hx-lean" "{{home_directory()}}/.local/bin/hx-lean"
+    export HELIX_RUNTIME="$helix_lean_dir/runtime"
+    "{{home_directory()}}/.local/bin/hx-lean" --grammar fetch
+    "{{home_directory()}}/.local/bin/hx-lean" --grammar build
+    "{{home_directory()}}/.local/bin/hx-lean" --version
 
 # Open a project with current upstream Helix and its matching runtime.
 hx-head PROJ="forest" *PARAMS="":

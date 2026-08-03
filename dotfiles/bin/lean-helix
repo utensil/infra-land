@@ -48,11 +48,11 @@ prepare_tools() {
     run_prep prep-herdr
   fi
 
-  command -v hx-head >/dev/null 2>&1 || run_prep prep-helix-head
+  command -v hx-lean >/dev/null 2>&1 || run_prep prep-helix-lean
   command -v lean-helix-view >/dev/null 2>&1 || run_prep prep-lean-helix-view
 
   command -v herdr >/dev/null 2>&1 || die "herdr installation failed"
-  command -v hx-head >/dev/null 2>&1 || die "hx-head installation failed"
+  command -v hx-lean >/dev/null 2>&1 || die "hx-lean installation failed"
   command -v lean-helix-view >/dev/null 2>&1 || die "lean-helix-view installation failed"
 
   herdr_version="$(herdr --version | awk '{print $2}')"
@@ -60,13 +60,13 @@ prepare_tools() {
     die "herdr $herdr_version is below required $MIN_HERDR_VERSION"
 
   local hx_health
-  hx_health="$(hx-head --health lean 2>&1 || true)"
+  hx_health="$(hx-lean --health lean 2>&1 || true)"
   if ! printf '%s' "$hx_health" | grep -q 'lean-helix-view'; then
     run_prep prep-hx-conf
-    hx_health="$(hx-head --health lean 2>&1 || true)"
+    hx_health="$(hx-lean --health lean 2>&1 || true)"
   fi
   printf '%s' "$hx_health" | grep -q 'lean-helix-view' || \
-    die "hx-head is not configured to use lean-helix-view"
+    die "hx-lean is not configured to use lean-helix-view"
 }
 
 start_herdr() {
@@ -133,9 +133,9 @@ launch_workspace() {
   [[ -n "$goal_pane" && "$goal_pane" != null ]] || die "Herdr did not return a goal pane id"
 
   herdr pane run "$goal_pane" lean-helix-view watch >/dev/null
-  herdr pane run "$editor_pane" hx-head "$target" >/dev/null
+  herdr pane run "$editor_pane" hx-lean "$target" >/dev/null
   herdr workspace focus "$workspace_id" >/dev/null
-  printf 'Created Herdr workspace %s (%s): hx-head | Lean goals.\n' "$label" "$workspace_id"
+  printf 'Created Herdr workspace %s (%s): hx-lean | Lean goals.\n' "$label" "$workspace_id"
 }
 
 case "${1:-}" in
