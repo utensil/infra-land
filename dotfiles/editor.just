@@ -124,6 +124,7 @@ forest DIR="":
         --target-pane "$right_pane" \
         --env HERDR_BROWSER_INITIAL_URL=http://127.0.0.1:1314/forest/ \
         --env HERDR_BROWSER_TRANSPORT=direct-kitty \
+        --env HERDR_BROWSER_DISABLE_MOUSE_HOVER=1 \
         --no-focus)"
     browser_pane="$(printf '%s' "$opened" | jq -r '.result.plugin_pane.pane.pane_id')"
     [[ -n "$browser_pane" && "$browser_pane" != null ]] || die "Herdr Browser did not return a pane id"
@@ -195,6 +196,16 @@ prep-herdr-forest:
     just link-conf helix
     just prep-herdr-tmux
     just prep-herdr-browser
+    patch_bin="$(command -v patch || true)"
+    [[ -n "$patch_bin" ]] || { printf 'patch is required to prepare Herdr Browser\n' >&2; exit 1; }
+    plugins="$(herdr plugin list --plugin official.browser --json)"
+    plugin_root="$(printf '%s' "$plugins" | jq -r '.result.plugins[] | select(.plugin_id == "official.browser") | .plugin_root' | head -n 1)"
+    [[ -d "$plugin_root" ]] || { printf 'official.browser plugin root is missing\n' >&2; exit 1; }
+    viewer_source="$plugin_root/src/viewer.ts"
+    patch_file="{{justfile_directory()}}/dotfiles/herdr-browser-disable-hover.patch"
+    if ! rg -q 'HERDR_BROWSER_DISABLE_MOUSE_HOVER' "$viewer_source"; then
+        (cd "$plugin_root" && "$patch_bin" --forward --quiet -p0 < "$patch_file")
+    fi
     export HELIX_RUNTIME="$helix_runtime"
     source_dir="$helix_runtime/grammars/sources/forester"
     query_dir="$helix_runtime/queries/forester"

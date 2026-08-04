@@ -1,0 +1,14 @@
+--- src/viewer.ts
++++ src/viewer.ts
+@@ -951,7 +951,10 @@
+ function enableMouseReporting() {
+   if (mouseReportingActive) {
+     return;
+   }
+   mouseReportingActive = true;
+-  process.stdout.write("\x1b[?1000h\x1b[?1003h\x1b[?1006h");
++  const motion = process.env.HERDR_BROWSER_DISABLE_MOUSE_HOVER === "1"
++    ? ""
++    : "\x1b[?1003h";
++  process.stdout.write(`\x1b[?1000h${motion}\x1b[?1006h`);
+ }
