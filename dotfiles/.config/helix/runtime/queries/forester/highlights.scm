@@ -22,14 +22,12 @@
 (author "author" @field)
 (contributor "contributor" @field)
 (title "title" @field)
-(taxon "taxon" @field)
-(meta "meta" @field)
 
 (title "title" @text.title)
 (title (_) @text.title)
 (author author: (_) @markup.heading.url)
 
-(ident label: (_) @string)
+(ident (text_identifier) @function)
 (transclude "transclude" @include)
 (transclude address: (_) @markup.link.url)
 
@@ -42,7 +40,7 @@
 
 (markdown_link label: (_) @label)
 (markdown_link dest: (_) @text.uri)
-(unlabeled_link (external_link (_) @text.uri))
+(unlabeled_link (external_link) @text.uri)
 
 (scope "scope" @namespace)
 (put "put" @variable.parameter)

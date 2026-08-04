@@ -62,10 +62,14 @@ forest DIR="":
     command -v curl >/dev/null 2>&1 || die "curl is required"
     command -v jq >/dev/null 2>&1 || die "jq is required"
     command -v forester >/dev/null 2>&1 || die "forester is required"
-    command -v hx-lean >/dev/null 2>&1 || just prep-helix-lean
-    just link-conf helix
-    just prep-helix-forester
-    just prep-herdr-tmux
+    command -v herdr >/dev/null 2>&1 || die "herdr is required"
+    command -v hx-lean >/dev/null 2>&1 || die "hx-lean is required; run just prep-herdr-forest"
+    helix_config="{{home_directory()}}/.config/helix"
+    helix_runtime="$helix_config/runtime"
+    [[ -f "$helix_config/languages.toml" ]] || die "Helix is not prepared; run just prep-herdr-forest"
+    [[ -f "$helix_runtime/queries/forester/highlights.scm" ]] || die "Forester highlights are not prepared; run just prep-herdr-forest"
+    parser_path="$(find "$helix_runtime/grammars" -maxdepth 1 -type f -name 'forester.*' -print -quit)"
+    [[ -n "$parser_path" ]] || die "Forester grammar is not prepared; run just prep-herdr-forest"
 
     server_status="$(herdr status server --json 2>/dev/null || true)"
     if ! printf '%s' "$server_status" | jq -e '.running == true and .compatible == true' >/dev/null 2>&1; then
@@ -79,8 +83,6 @@ forest DIR="":
         done
     fi
     printf '%s' "$server_status" | jq -e '.running == true and .compatible == true' >/dev/null 2>&1 || die "Herdr server did not become ready"
-    just prep-herdr-browser
-
     label="$(basename "$dir")-forest"
     workspaces="$(herdr workspace list)"
     existing_id="$(printf '%s' "$workspaces" | jq -r --arg label "$label" '.result.workspaces[] | select(.label == $label) | .workspace_id' | head -n 1)"
@@ -96,14 +98,14 @@ forest DIR="":
     [[ -n "$workspace_id" && "$workspace_id" != null ]] || die "Herdr did not return a workspace id"
     [[ -n "$editor_pane" && "$editor_pane" != null ]] || die "Herdr did not return an editor pane id"
 
-    right_split="$(herdr pane split "$editor_pane" --direction right --ratio 0.6 --cwd "$dir" --no-focus)"
+    right_split="$(herdr pane split "$editor_pane" --direction right --ratio 0.45 --cwd "$dir" --no-focus)"
     right_pane="$(printf '%s' "$right_split" | jq -r '.result.pane.pane_id')"
     [[ -n "$right_pane" && "$right_pane" != null ]] || die "Herdr did not return a preview pane id"
     dev_split="$(herdr pane split "$right_pane" --direction down --ratio 0.75 --cwd "$dir" --no-focus)"
     dev_pane="$(printf '%s' "$dev_split" | jq -r '.result.pane.pane_id')"
     [[ -n "$dev_pane" && "$dev_pane" != null ]] || die "Herdr did not return a dev pane id"
 
-    herdr pane run "$editor_pane" hx-lean . >/dev/null
+    herdr pane run "$editor_pane" env "HELIX_RUNTIME=$helix_runtime" hx-lean . >/dev/null
     herdr pane run "$dev_pane" just dev >/dev/null
     for _ in {1..600}; do
         if curl -fsS --max-time 1 --output /dev/null http://127.0.0.1:1314/forest/ 2>/dev/null; then
@@ -113,6 +115,7 @@ forest DIR="":
     done
     curl -fsS --max-time 1 --output /dev/null http://127.0.0.1:1314/forest/ 2>/dev/null || die "Forest dev server did not become ready"
 
+    # Herdr's detached graphics stream cannot resolve Ghostty cell metrics here.
     opened="$(herdr plugin pane open \
         --plugin official.browser \
         --entrypoint browser \
@@ -120,6 +123,7 @@ forest DIR="":
         --direction right \
         --target-pane "$right_pane" \
         --env HERDR_BROWSER_INITIAL_URL=http://127.0.0.1:1314/forest/ \
+        --env HERDR_BROWSER_TRANSPORT=direct-kitty \
         --no-focus)"
     browser_pane="$(printf '%s' "$opened" | jq -r '.result.plugin_pane.pane.pane_id')"
     [[ -n "$browser_pane" && "$browser_pane" != null ]] || die "Herdr Browser did not return a pane id"
@@ -180,24 +184,31 @@ prep-helix-lean:
     "{{home_directory()}}/.local/bin/hx-lean" --grammar build
     "{{home_directory()}}/.local/bin/hx-lean" --version
 
-# Prepare the optional Forester parser and its highlight queries for hx-lean.
-prep-helix-forester:
+# Prepare Forest's Helix parser/highlights and Herdr integration once.
+prep-herdr-forest:
     #!/usr/bin/env bash
     set -euo pipefail
-    helix_lean_dir="{{home_directory()}}/projects/helix-lean"
-    helix_runtime="{{home_directory()}}/.config/helix/runtime"
-    hx_lean="{{home_directory()}}/.local/bin/hx-lean"
-    [[ -x "$hx_lean" ]] || just prep-helix-lean
+    helix_config="{{home_directory()}}/.config/helix"
+    helix_runtime="$helix_config/runtime"
+    hx_lean="$(command -v hx-lean || true)"
+    [[ -n "$hx_lean" ]] || { just prep-helix-lean; hx_lean="$(command -v hx-lean)"; }
+    just link-conf helix
+    just prep-herdr-tmux
+    just prep-herdr-browser
     export HELIX_RUNTIME="$helix_runtime"
     source_dir="$helix_runtime/grammars/sources/forester"
     query_dir="$helix_runtime/queries/forester"
-    if ! "$hx_lean" --health forester 2>/dev/null | rg -q 'Tree-sitter parser: ✓' || [[ ! -f "$source_dir/queries/highlights.scm" ]]; then
+    parser_path="$(find "$helix_runtime/grammars" -maxdepth 1 -type f -name 'forester.*' -print -quit)"
+    if [[ -z "$parser_path" || ! -f "$source_dir/queries/highlights.scm" ]]; then
         "$hx_lean" --grammar fetch
         "$hx_lean" --grammar build
     fi
+    parser_path="$(find "$helix_runtime/grammars" -maxdepth 1 -type f -name 'forester.*' -print -quit)"
+    [[ -n "$parser_path" ]] || { printf 'forester parser was not built\n' >&2; exit 1; }
     [[ -f "$source_dir/queries/highlights.scm" ]] || { printf 'forester highlight queries are missing\n' >&2; exit 1; }
     mkdir -p "$query_dir"
     [[ -f "$query_dir/highlights.scm" ]] || install -m 0644 "$source_dir/queries/highlights.scm" "$query_dir/highlights.scm"
+    printf 'Prepared Forest Helix grammar and Herdr Browser integration.\n'
 
 # Open a project with current upstream Helix and its matching runtime.
 hx-head PROJ="forest" *PARAMS="":
