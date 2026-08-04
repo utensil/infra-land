@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Run infra-land just tasks from any directory.
+# AGENT-NOTE: -f pins the justfile, -d pins the working directory to the repo
+# root so recipes using justfile_directory() and relative paths resolve.
+# If the repo moves, update the path below.
+exec just --justfile "$HOME/projects/infra-land/justfile" --working-directory "$HOME/projects/infra-land" "$@"
