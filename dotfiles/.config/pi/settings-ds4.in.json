@@ -1,0 +1,20 @@
+{
+  "defaultProvider": "deepseek",
+  "defaultModel": "deepseek-v4-flash",
+  "defaultThinkingLevel": "high",
+  "theme": "dark",
+  "packages": [
+    "git:github.com/sting8k/pi-vcc",
+    "npm:pi-codex-goal",
+    "npm:pi-web-access",
+    "npm:pi-sidequest",
+    "npm:pi-boomerang",
+    "npm:pi-subagents",
+    "npm:pi-dynamic-workflows"
+  ],
+  "retry": {
+    "enabled": true,
+    "maxRetries": 5,
+    "baseDelayMs": 10000
+  }
+}

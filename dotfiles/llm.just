@@ -726,15 +726,26 @@ prep-oc-ds4: prep-oc
     echo "Configured opencode to use DeepSeek V4 Pro (reasoningEffort: high)"
     echo "!!! Run 'opencode auth login' to authenticate !!!"
 
-# AGENT-NOTE: Symlinks pi settings with re-entry safety (rips symlinks, backs up real files).
+# AGENT-NOTE: Live pi settings are per-device and gitignored
+# (dotfiles/.config/pi/settings*.json); only the settings-ds4.in.json template
+# is tracked. This task bootstraps the per-device file from the template on a
+# new machine, then symlinks it into ~/.pi/agent/ (rips symlinks, backs up real
+# files) so pi's runtime updates (model, changelog, packages) stay local and
+# never get committed. Secrets live in auth.json/models.json, never here.
 #
 # Configure pi for DeepSeek V4 Pro high thinking.
 prep-pi-ds4: prep-pi
     #!/usr/bin/env bash
     set -e
     SRC="{{justfile_directory()}}/dotfiles/.config/pi/settings-ds4.json"
+    TEMPLATE="{{justfile_directory()}}/dotfiles/.config/pi/settings-ds4.in.json"
     TARGET="$HOME/.pi/agent/settings.json"
     mkdir -p "$(dirname "$TARGET")"
+    # Bootstrap the per-device settings file from the tracked template if absent.
+    if [ ! -f "$SRC" ]; then
+        cp "$TEMPLATE" "$SRC"
+        echo "Bootstrapped $SRC from template."
+    fi
     if [ -L "$TARGET" ]; then
         rip "$TARGET"
     elif [ -e "$TARGET" ]; then

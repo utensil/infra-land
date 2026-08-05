@@ -50,6 +50,10 @@ dotfiles/.config/helix/external-snippets/
 dotfiles/.config/chawan/cookies.txt
 dotfiles/.config/chawan/history.uri
 dotfiles/.config/tattoy/shaders
+# Live pi settings are per-device (pi writes model/changelog/packages through
+# the ~/.pi/agent/settings.json symlink); only the template is tracked.
+dotfiles/.config/pi/settings*.json
+!dotfiles/.config/pi/settings-ds4.in.json
 
 .omc/
 .playwright-mcp/
