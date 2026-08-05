@@ -5,7 +5,6 @@
 # Most defaults already match tmux: prefix+c new tab, prefix+p/n prev/next,
 # prefix+x close pane, prefix+z zoom, prefix+h/j/k/l focus, prefix+1..9 tab switch,
 # prefix+w workspace picker (~= tmux session picker).
-#
 # Hard limits in herdr 0.6.0 (no tmux equivalent possible):
 #   - no `prefix → arrow` pane resize (only prefix+r toggles resize mode)
 #   - no `prefix+[` scroll/copy mode (scrollback opens in $EDITOR via prefix+e)
@@ -32,6 +31,10 @@ detach = "prefix+d"
 rename_tab = "prefix+,"
 close_tab = "prefix+&"
 
+# AGENT-NOTE: close_workspace kills the whole workspace (all panes/tabs, e.g.
+# a `j lean` workspace); keep it away from detach (prefix+d) to avoid
+# fat-fingering a kill. prefix+shift+q = ctrl+b then Q (Quit).
+close_workspace = "prefix+shift+q"
 [experimental]
 # Herdr Browser renders Chromium frames through the Kitty graphics protocol.
 kitty_graphics = true
