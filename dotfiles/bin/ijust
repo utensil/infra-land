@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 # Run infra-land just tasks from any directory.
-# AGENT-NOTE: -f pins the justfile, -d pins the working directory to the repo
-# root so recipes using justfile_directory() and relative paths resolve.
-# If the repo moves, update the path below.
-exec just --justfile "$HOME/projects/infra-land/justfile" --working-directory "$HOME/projects/infra-land" "$@"
+# AGENT-NOTE: -f pins the justfile and -d pins the recipe working directory to
+# the invocation directory ($PWD at exec time, i.e. wherever the user ran the
+# wrapper), so recipes that resolve relative paths or '.' against cwd (e.g.
+# `j lean .`) act on the current directory, while justfile_directory() and
+# PROJECT_ROOT still resolve to the repo via -f. JUST_JUSTFILE is exported so
+# nested `just` calls inside recipes (e.g. prep-ijust -> just sync-ijust,
+# prep-rcy -> yes|just prep-rc) also find the repo justfile; those nested
+# invocations keep just's default cwd = repo root, so recipes using bare
+# relative paths still work. If the repo moves, update the paths below.
+export JUST_JUSTFILE="$HOME/projects/infra-land/justfile"
+exec just --justfile "$HOME/projects/infra-land/justfile" --working-directory "$PWD" "$@"
