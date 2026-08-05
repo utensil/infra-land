@@ -12,11 +12,18 @@ export XDG_CONFIG_HOME := home_directory() / ".config"
 # https://blog.rust-lang.org/inside-rust/2023/01/30/cargo-sparse-protocol/
 # export CARGO_REGISTRIES_CRATES_IO_PROTOCOL := "sparse"
 
-# Install the ijust wrapper so infra-land just tasks run from any directory.
+# Symlink the ijust wrapper into ~/.local/bin so infra-land just tasks run
+# from any directory, always tracking the repo without copying.
 prep-ijust:
     just sync-ijust
 
-# Copy the ijust wrapper into /usr/local/bin.
+# Symlink the ijust wrapper into ~/.local/bin.
+# AGENT-NOTE: symlink instead of cp so the wrapper always tracks the repo;
+# like link-conf, rip the old target first for re-entry.
 sync-ijust:
+    #!/usr/bin/env bash
+    set -euo pipefail
     chmod +x "{{justfile_directory()}}/dotfiles/bin/ijust"
-    cp -f dotfiles/bin/ijust /usr/local/bin || sudo cp -f dotfiles/bin/ijust /usr/local/bin
+    mkdir -p "{{home_directory()}}/.local/bin"
+    rip "{{home_directory()}}/.local/bin/ijust" || true
+    ln -s "{{justfile_directory()}}/dotfiles/bin/ijust" "{{home_directory()}}/.local/bin/ijust"
