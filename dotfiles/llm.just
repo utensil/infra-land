@@ -717,6 +717,16 @@ prep-oc:
 prep-pi:
     bun add -g @earendil-works/pi-coding-agent
 
+# AGENT-NOTE: Agent-side half of herdr's pi session resume. The herdr side is
+# [session] resume_agents_on_restore in dotfiles/.config/herdr/config.toml
+# (deployed by prep-herdr-tmux). This installs herdr-agent-state.ts into
+# ~/.pi/agent/extensions/ so pi panes report a native session reference;
+# without it the config setting has nothing to resume.
+# Install herdr's pi integration so pi panes report native session references.
+prep-herdr-pi: prep-herdr-tmux
+    herdr integration install pi
+    herdr integration status | rg '^pi:' || die "pi integration missing after install"
+
 # AGENT-NOTE: Delegates to improved link-conf which handles re-entry safely
 # (rips symlinks, backs up real files with timestamp suffix).
 #
