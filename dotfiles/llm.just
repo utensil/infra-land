@@ -763,6 +763,16 @@ prep-pi-ds4: prep-pi
     fi
     ln -s "$SRC" "$TARGET"
     echo "Configured pi to use DeepSeek V4 Pro (thinking: high)"
+    # Install the Lean grammar from npm (NOT vendored) and deploy the node
+    # preload hook that registers it into pi's highlight.js. highlightjs-lean
+    # 1.0.0 is the factory form, compatible with hljs 10.x/11.x — survives pi
+    # updates (pi pins highlight.js 10.7.3) with no compat breaks.
+    bun add -g highlightjs-lean@1.0.0
+    mkdir -p "$HOME/.pi/agent"
+    cp -f "{{justfile_directory()}}/dotfiles/.config/pi/lean-highlight-preload.cjs" \
+        "$HOME/.pi/agent/lean-highlight-preload.cjs"
+    echo "Deployed lean-highlight preload: $HOME/.pi/agent/lean-highlight-preload.cjs"
+    echo "!!! NODE_OPTIONS=--require=\$HOME/.pi/agent/lean-highlight-preload.cjs must be in the shell env (~/.envrc) and cc-connect env for spawned pi !!!"
     echo "!!! Run 'pi' then type '/login' and select DeepSeek to authenticate !!!"
 
 # Check OpenCode setup.
