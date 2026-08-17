@@ -2,7 +2,7 @@
   "defaultProvider": "deepseek",
   "defaultModel": "deepseek-v4-flash",
   "defaultThinkingLevel": "high",
-  "theme": "dark",
+  "theme": "railscasts",
   "packages": [
     "git:github.com/sting8k/pi-vcc",
     "npm:pi-codex-goal",
