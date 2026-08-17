@@ -741,6 +741,13 @@ prep-pi-ds4: prep-pi
     TEMPLATE="{{justfile_directory()}}/dotfiles/.config/pi/settings-ds4.in.json"
     TARGET="$HOME/.pi/agent/settings.json"
     mkdir -p "$(dirname "$TARGET")"
+    # Deploy the railscasts theme (referenced by settings-ds4.in.json) so a
+    # fresh machine never points at a missing theme.
+    THEME_SRC="{{justfile_directory()}}/dotfiles/.config/pi/themes/railscasts.json"
+    THEME_TARGET="$HOME/.pi/agent/themes/railscasts.json"
+    mkdir -p "$(dirname "$THEME_TARGET")"
+    cp -f "$THEME_SRC" "$THEME_TARGET"
+    echo "Deployed pi theme: railscasts"
     # Bootstrap the per-device settings file from the tracked template if absent.
     if [ ! -f "$SRC" ]; then
         cp "$TEMPLATE" "$SRC"
