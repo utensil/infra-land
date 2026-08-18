@@ -16,5 +16,6 @@
     "enabled": true,
     "maxRetries": 5,
     "baseDelayMs": 10000
-  }
+  },
+  "tuiMode": "fullscreen"
 }
