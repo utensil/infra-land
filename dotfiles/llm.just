@@ -772,6 +772,13 @@ prep-pi-ds4: prep-pi
     cp -f "{{justfile_directory()}}/dotfiles/.config/pi/lean-highlight-preload.cjs" \
         "$HOME/.pi/agent/lean-highlight-preload.cjs"
     echo "Deployed lean-highlight preload: $HOME/.pi/agent/lean-highlight-preload.cjs"
+    # Deploy the show_image extension (display an image file inline in the
+    # TUI for the human; returns a { type: "image" } content block).
+    EXT_SRC="{{justfile_directory()}}/dotfiles/.config/pi/extensions/show-image"
+    EXT_TARGET="$HOME/.pi/agent/extensions/show-image"
+    mkdir -p "$(dirname "$EXT_TARGET")"
+    cp -rf "$EXT_SRC" "$EXT_TARGET"
+    echo "Deployed pi extension: show-image"
     echo "!!! NODE_OPTIONS=--require=\$HOME/.pi/agent/lean-highlight-preload.cjs must be in the shell env (~/.envrc) and cc-connect env for spawned pi !!!"
     echo "!!! Run 'pi' then type '/login' and select DeepSeek to authenticate !!!"
 
