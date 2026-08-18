@@ -1,17 +1,24 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { Container, Image, Spacer, Text } from "@earendil-works/pi-tui";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 // AGENT-NOTE: show_image — display an image file inline in the TUI for the
-// human operator. Returns a `{ type: "image" }` content block, which pi's
-// tool-result renderer draws via the Kitty/iTerm2 graphics protocol. The
-// image is NOT sent to the model (DeepSeek V4 is text-only); pi's
-// normalizeToolResultImages auto-resizes it on the way into session history.
+// human operator.
 //
-// No pi-internal imports: read → base64 → content block is the whole
-// contract (the earlier attempt imported dist/utils/image-process.js, a
-// non-exported subpath — that's why it failed to load).
+// Two paths:
+//  1. show_image tool — the model calls it; result renders in the transcript.
+//  2. /show-image <path> command — the human triggers it directly; the message
+//     is rendered by a registered custom renderer (registerMessageRenderer),
+//     because the DEFAULT custom-message renderer only draws `text` content
+//     blocks and silently DROPS `image` blocks. The renderer below emits the
+//     pi-tui `Image` component (Kitty/iTerm2 graphics protocol).
+//
+// The image is NOT sent to the model (DeepSeek V4 is text-only); it renders
+// terminal-side for the human.
+const CUSTOM_TYPE = "show-image-result";
+
 export default function (pi: ExtensionAPI) {
 	const MIME_BY_EXT: Record<string, string> = {
 		".png": "image/png",
@@ -37,6 +44,39 @@ export default function (pi: ExtensionAPI) {
 			return { ok: false, message: `Could not read image [${absolutePath}]: ${msg}` };
 		}
 	}
+
+	// Custom renderer: draw the label + the Image component. Without this, the
+	// default custom-message renderer drops image content blocks entirely.
+	pi.registerMessageRenderer(CUSTOM_TYPE, (message, _options, theme) => {
+		const container = new Container();
+		const label =
+			typeof message.content === "string"
+				? message.content
+				: (message.content ?? [])
+						.filter((c) => c.type === "text")
+						.map((c) => c.text)
+						.join("\n");
+		container.addChild(new Text(theme.fg("accent", label || "show-image"), 0, 0));
+		const blocks = (message.content ?? []).filter((c) => c.type === "image") as Array<{
+			type: "image";
+			data?: string;
+			mimeType?: string;
+		}>;
+		for (const img of blocks) {
+			if (img.data && img.mimeType) {
+				container.addChild(new Spacer(1));
+				container.addChild(
+					new Image(
+						img.data,
+						img.mimeType,
+						{ fallbackColor: (s: string) => theme.fg("muted", s) },
+						{ maxWidthCells: 60 },
+					),
+				);
+			}
+		}
+		return container;
+	});
 
 	pi.registerTool({
 		name: "show_image",
@@ -75,7 +115,7 @@ export default function (pi: ExtensionAPI) {
 			const path = args.trim();
 			if (!path) {
 				pi.sendMessage({
-					customType: "show-image-result",
+					customType: CUSTOM_TYPE,
 					content: [{ type: "text", text: "Usage: /show-image <path>" }],
 					display: true,
 				});
@@ -84,20 +124,20 @@ export default function (pi: ExtensionAPI) {
 			const res = await loadImage(path);
 			if (!res.ok) {
 				pi.sendMessage({
-					customType: "show-image-result",
+					customType: CUSTOM_TYPE,
 					content: [{ type: "text", text: res.message }],
 					display: true,
 				});
 				return;
 			}
 			pi.sendMessage({
-				customType: "show-image-result",
-					content: [
-						{ type: "text", text: `Showing image: ${path}` },
-						{ type: "image", data: res.data, mimeType: res.mimeType },
-					],
-					display: true,
-				});
+				customType: CUSTOM_TYPE,
+				content: [
+					{ type: "text", text: `Showing image: ${path}` },
+					{ type: "image", data: res.data, mimeType: res.mimeType },
+				],
+				display: true,
+			});
 		},
 	});
 }
