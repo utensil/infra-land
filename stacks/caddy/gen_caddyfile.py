@@ -12,7 +12,8 @@ using .homelab.local and tls internal. Output is written to stacks/caddy/Caddyfi
 
 Port detection:
 - For each stack, if a compose.yaml or compose.yml exists, the script uses the first port mapping of the first service as the proxy target port.
-- If no port is found, defaults to 5001.
+- If no port is found, the stack is skipped with a warning.
+- Stacks listed in SKIP_STACKS are never proxied (their first exposed port is not HTTP).
 - This allows stacks to expose different ports without manual overrides.
 
 Usage:
@@ -26,6 +27,16 @@ import sys
 
 STACKS_DIR = Path(__file__).parent.parent
 OUTPUT_FILE = Path(__file__).parent / "Caddyfile.generated"
+
+# AGENT-NOTE: Stacks whose first exposed port is not HTTP. Caddy's
+# reverse_proxy cannot serve these, and their compose files use
+# env-interpolated ports the parser cannot read, so they are excluded
+# explicitly to keep the generated Caddyfile deterministic even if their
+# compose files later gain literal port mappings.
+SKIP_STACKS = {
+    "mattermost",  # first service is postgres (replication pair), not HTTP
+    "sstore",      # SSH storage server (port 2222), not HTTP
+}
 
 site_template = """{stack}.homelab.local {{
     reverse_proxy {stack}:{port}
@@ -80,8 +91,11 @@ def main():
     # print("running...")
     all_entries = list(STACKS_DIR.iterdir())
     # print("All entries in stacks/:", [d.name for d in all_entries])
-    stack_names = [d.name for d in all_entries if d.is_dir() and not d.name.startswith('.') and d.name != "caddy"]
+    stack_names = [d.name for d in all_entries if d.is_dir() and not d.name.startswith('.') and d.name != "caddy" and d.name not in SKIP_STACKS]
     # print("Filtered stack names:", stack_names)
+    for skipped in sorted(SKIP_STACKS):
+        if skipped in [d.name for d in all_entries if d.is_dir()]:
+            print(f"  Note: stack '{skipped}' is in SKIP_STACKS (non-HTTP service), no Caddyfile rule generated.")
     port_to_stacks = {}
     stack_to_port = {}
     host_port_to_stacks = {}
