@@ -18,5 +18,9 @@
     "baseDelayMs": 10000
   },
   "tuiMode": "fullscreen",
-  "fullscreenExitOutput": "resume-hint"
+  "fullscreenExitOutput": "resume-hint",
+  "terminal": {
+    "showImages": true,
+    "imageWidthCells": 60
+  }
 }

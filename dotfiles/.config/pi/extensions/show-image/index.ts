@@ -22,6 +22,22 @@ export default function (pi: ExtensionAPI) {
 		".bmp": "image/bmp",
 	};
 
+	async function loadImage(path: string): Promise<{ ok: true; data: string; mimeType: string } | { ok: false; message: string }> {
+		const absolutePath = path.startsWith("/") ? path : join(process.cwd(), path);
+		const ext = absolutePath.slice(absolutePath.lastIndexOf(".")).toLowerCase();
+		const mimeType = MIME_BY_EXT[ext];
+		if (!mimeType) {
+			return { ok: false, message: `Unsupported image extension: ${absolutePath}` };
+		}
+		try {
+			const buffer = await readFile(absolutePath);
+			return { ok: true, data: buffer.toString("base64"), mimeType };
+		} catch (e) {
+			const msg = e instanceof Error ? e.message : String(e);
+			return { ok: false, message: `Could not read image [${absolutePath}]: ${msg}` };
+		}
+	}
+
 	pi.registerTool({
 		name: "show_image",
 		label: "Show Image",
@@ -37,35 +53,51 @@ export default function (pi: ExtensionAPI) {
 			path: Type.String({ description: "Path to the image file (png, jpg, jpeg, gif, webp, bmp)" }),
 		}),
 		async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
-			const absolutePath = params.path.startsWith("/")
-				? params.path
-				: join(process.cwd(), params.path);
-			const ext = absolutePath.slice(absolutePath.lastIndexOf(".")).toLowerCase();
-			const mimeType = MIME_BY_EXT[ext];
-			if (!mimeType) {
-				return {
-					content: [{ type: "text", text: `Unsupported image extension: ${absolutePath}` }],
-					details: {},
-				};
-			}
-			let data: string;
-			try {
-				const buffer = await readFile(absolutePath);
-				data = buffer.toString("base64");
-			} catch (e) {
-				const msg = e instanceof Error ? e.message : String(e);
-				return {
-					content: [{ type: "text", text: `Could not read image [${absolutePath}]: ${msg}` }],
-					details: {},
-				};
+			const res = await loadImage(params.path);
+			if (!res.ok) {
+				return { content: [{ type: "text", text: res.message }], details: {} };
 			}
 			return {
 				content: [
-					{ type: "text", text: `Showing image: ${absolutePath}` },
-					{ type: "image", data, mimeType },
+					{ type: "text", text: `Showing image: ${params.path}` },
+					{ type: "image", data: res.data, mimeType: res.mimeType },
 				],
-				details: { path: absolutePath, mimeType },
+				details: { path: params.path, mimeType: res.mimeType },
 			};
+		},
+	});
+
+	// Human-triggerable command: /show-image <path> renders the image inline in
+	// the transcript without involving the model at all.
+	pi.registerCommand("show-image", {
+		description: "Display an image file inline in the terminal (no model involvement)",
+		async handler(args, _ctx) {
+			const path = args.trim();
+			if (!path) {
+				pi.sendMessage({
+					customType: "show-image-result",
+					content: [{ type: "text", text: "Usage: /show-image <path>" }],
+					display: true,
+				});
+				return;
+			}
+			const res = await loadImage(path);
+			if (!res.ok) {
+				pi.sendMessage({
+					customType: "show-image-result",
+					content: [{ type: "text", text: res.message }],
+					display: true,
+				});
+				return;
+			}
+			pi.sendMessage({
+				customType: "show-image-result",
+					content: [
+						{ type: "text", text: `Showing image: ${path}` },
+						{ type: "image", data: res.data, mimeType: res.mimeType },
+					],
+					display: true,
+				});
 		},
 	});
 }
