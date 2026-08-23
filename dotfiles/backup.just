@@ -1,5 +1,15 @@
 ## Backup
 
+# Exclude reproducible development data from Time Machine.
+[macos]
+tm-excludes:
+    sudo tmutil addexclusion -p \
+        {{home_directory()}}/worktrees \
+        {{home_directory()}}/.cache/mathlib \
+        {{home_directory()}}/.cache/uv \
+        {{home_directory()}}/.bun/install \
+        {{home_directory()}}/.cargo/registry
+
 # https://www.fuse-t.org/
 #
 # Install FUSE-T.
