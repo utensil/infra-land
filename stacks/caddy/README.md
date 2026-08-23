@@ -9,13 +9,13 @@ This stack provides a Caddy HTTPS reverse proxy for homelab services, using inte
 2. Add entries for all stacks to your client machine's hosts file. You can automate this with:
 
     ```sh
-    just prep-homelab [IP]
+    just -f stacks/caddy/justfile prep-hosts [IP]
     ```
 
-    This will scan all stacks and add lines like:
+    (or `cd stacks/caddy && just prep-hosts [IP]`). This will scan all stacks and add lines like:
 
     ```
-    127.0.0.1 dockge.homelab.internal
+    127.0.0.1 dockge.homelab.local
     ```
 
     (Replace `[IP]` with your server's IP if not running locally; defaults to 127.0.0.1.)
@@ -30,15 +30,15 @@ This stack provides a Caddy HTTPS reverse proxy for homelab services, using inte
 
     ```sh
     export PODS_HOME=/path/to/pods
-    docker-compose -f stacks/caddy/compose.yml build
-    docker-compose -f stacks/caddy/compose.yml up -d
+    docker compose -f stacks/caddy/compose.yml build
+    docker compose -f stacks/caddy/compose.yml up -d
     ```
 
     Whenever you change the Caddyfile, re-run the build command above.
 
 5. Ensure the dockge stack is running and accessible as `dockge:5001` from the Caddy container (use Docker networking).
 
-6. Visit https://dockge.homelab.internal in your browser (accept the internal CA if prompted).
+6. Visit https://dockge.homelab.local in your browser (accept the internal CA if prompted).
 
 ## Trusting and Untrusting the Caddy Root CA
 
