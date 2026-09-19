@@ -446,6 +446,23 @@ prep-leaf:
 prep-nm:
     which notesmd-cli || brew install yakitrak/yakitrak/notesmd-cli
 
+# basalt: TUI application to manage Obsidian notes directly from the terminal
+# https://github.com/erikjuhani/basalt
+#
+# AGENT-NOTE: Homebrew's install sandbox resolves the user's home through
+# `Dir.home($USER)`, which aborts with "user <name> doesn't exist" on hosts where
+# the invoking shell cannot reach Open Directory, so fall back to the crate.
+#
+# Install basalt.
+prep-basalt:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if command -v basalt >/dev/null 2>&1; then
+        basalt --version
+        exit 0
+    fi
+    brew install erikjuhani/tap/basalt || cargo install --locked basalt-tui
+
 ## LSP: programming languages
 
 # Install common CSS, Python, TypeScript, YAML, Lua, and tailwind language servers.
