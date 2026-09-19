@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  AGENT-NOTE: macOS drops kern.maxvnodes/kern.maxfiles/kern.maxfilesperproc on every reboot, and a
+  process cannot raise them for itself. This one-shot root daemon re-applies the ceilings at boot.
+  Values are the single source of truth: `just prep-kernel-limits` verifies the live sysctls against
+  this ProgramArguments list, so edit them here only.
+
+  Why vnodes dominate: each Lean process mmaps its whole artifact closure (5 vnodes per module:
+  .olean, .olean.private, .olean.server, .ir, .ir.sig) and the `lake` parent maps the same closure
+  again, so one `lake env lean <driver>` holds ~20-40k of the pool for its lifetime; when the pool
+  empties XNU returns ENFILE system-wide (every process, pi/mise/shell included).
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>org.infra.kernel-limits</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/usr/sbin/sysctl</string>
+		<string>-w</string>
+		<string>kern.maxvnodes=524288</string>
+		<string>kern.maxfiles=1048576</string>
+		<string>kern.maxfilesperproc=262144</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<false/>
+	<key>StandardOutPath</key>
+	<string>/var/log/org.infra.kernel-limits.log</string>
+	<key>StandardErrorPath</key>
+	<string>/var/log/org.infra.kernel-limits.log</string>
+</dict>
+</plist>

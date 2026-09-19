@@ -280,3 +280,64 @@ prep-iback:
     brew install libimobiledevice ideviceinstaller
     # rejected by homebrew: linux only
     # brew install ifuse
+
+## Kernel limits (macOS)
+
+# AGENT-NOTE: the requested ceilings live in dotfiles/launchd/org.infra.kernel-limits.plist.
+# Installs the root boot daemon, mirrors the pairs into /etc/sysctl.conf (documented boot path,
+# `man 5 sysctl.conf`), and verifies the live sysctls against the plist.
+# Requires sudo; safe to re-run.
+prep-kernel-limits:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    PLIST="{{justfile_directory()}}/dotfiles/launchd/org.infra.kernel-limits.plist"
+    DEST=/Library/LaunchDaemons/org.infra.kernel-limits.plist
+    LABEL=org.infra.kernel-limits
+
+    pairs="$(python3 -c 'import plistlib,sys;print("\n".join(a for a in plistlib.load(open(sys.argv[1],"rb"))["ProgramArguments"] if "=" in a))' "$PLIST")"
+
+    verify() {
+        local rc=0 kv key want got
+        while IFS= read -r kv; do
+            key="${kv%%=*}"; want="${kv#*=}"; got="$(sysctl -n "$key")"
+            if [ "$got" = "$want" ]; then printf 'ok   %s=%s\n' "$key" "$got"
+            else printf 'FAIL %s=%s (want %s)\n' "$key" "$got" "$want"; rc=1; fi
+        done <<< "$pairs"
+        return "$rc"
+    }
+
+    sudo install -o root -g wheel -m 0644 "$PLIST" "$DEST"
+
+    # sysctl.conf is read in multi-user mode; keep it in step as a fallback for the daemon.
+    [ -f /etc/sysctl.conf ] || sudo install -o root -g wheel -m 0644 /dev/null /etc/sysctl.conf
+    while IFS= read -r kv; do
+        pat="$(printf '%s' "${kv%%=*}" | sed 's/[.]/\\./g')"
+        sudo sed -i '' "/^${pat}=/d" /etc/sysctl.conf
+        printf '%s\n' "$kv" | sudo tee -a /etc/sysctl.conf >/dev/null
+    done <<< "$pairs"
+
+    sudo launchctl bootout system/$LABEL 2>/dev/null || true
+    sudo launchctl bootstrap system "$DEST"
+    # RunAtLoad already fired; kickstart only if the live values still disagree.
+    if ! verify >/dev/null; then sudo launchctl kickstart -k system/$LABEL && sleep 1; fi
+    verify
+    sudo launchctl print system/$LABEL 2>/dev/null | grep -E 'state = |last exit code = ' || true
+    echo "persisted: $DEST + /etc/sysctl.conf"
+
+# Read-only check that the ceilings survived a reboot (no sudo needed for the sysctls).
+audit-kernel-limits:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    PLIST="{{justfile_directory()}}/dotfiles/launchd/org.infra.kernel-limits.plist"
+    pairs="$(python3 -c 'import plistlib,sys;print("\n".join(a for a in plistlib.load(open(sys.argv[1],"rb"))["ProgramArguments"] if "=" in a))' "$PLIST")"
+    rc=0
+    while IFS= read -r kv; do
+        key="${kv%%=*}"; want="${kv#*=}"; got="$(sysctl -n "$key")"
+        if [ "$got" = "$want" ]; then echo "ok   $key=$got"
+        else echo "STALE $key=$got (want $want) — run: just prep-kernel-limits"; rc=1; fi
+    done <<< "$pairs"
+    conf_count="$(grep -cE '^kern\.(maxvnodes|maxfiles|maxfilesperproc)=' /etc/sysctl.conf 2>/dev/null)" || conf_count=0
+    echo "sysctl.conf: ${conf_count:-0}/3 pairs"
+    echo "daemon: $(sudo -n launchctl print system/org.infra.kernel-limits 2>/dev/null | grep -c 'state = ' || true) (1 = loaded; use sudo for a real answer)"
+    echo "pool: free=$(sysctl -n vfs.vnstats.num_free_vnodes) desired=$(sysctl -n vfs.vnstats.desired_vnodes)"
+    exit "$rc"
