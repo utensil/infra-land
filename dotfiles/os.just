@@ -298,7 +298,7 @@ prep-kernel-limits:
     # /bin/sh -c string covering both ceilings (sysctls + launchd's maxfiles rlimit), so the plist
     # stays the only place to edit them.
     pairs="$(python3 -c 'import plistlib,re,sys;d=plistlib.load(open(sys.argv[1],"rb"));print("\n".join(re.findall(r"kern\.[a-z]+=[0-9]+", " ".join(d["ProgramArguments"]))))' "$PLIST")"
-    launchd_want="$(python3 -c 'import plistlib,re,sys;d=plistlib.load(open(sys.argv[1],"rb"));m=re.findall(r"launchctl limit maxfiles ([0-9]+) ([0-9]+)", " ".join(d["ProgramArguments"]));print(" ".join(m[-1]) if m else "")' "$PLIST")"
+    launchd_want="$(python3 -c 'import plistlib,re,sys;d=plistlib.load(open(sys.argv[1],"rb"));m=re.findall(r"launchctl limit maxfiles ([0-9]+) (unlimited|[0-9]+)", " ".join(d["ProgramArguments"]));print(" ".join(m[-1]) if m else "")' "$PLIST")"
 
     verify() {
         local rc=0 kv key want got
@@ -324,10 +324,12 @@ prep-kernel-limits:
 
     # sysctl.conf is read in multi-user mode; keep it in step as a fallback for the daemon.
     [ -f /etc/sysctl.conf ] || sudo install -o root -g wheel -m 0644 /dev/null /etc/sysctl.conf
+    # Prune every key this recipe family manages, not only the ones still in the plist: a key
+    # dropped from the plist (e.g. kern.maxfiles, which macOS rests at INT_MAX) would otherwise
+    # survive here and keep being applied at boot behind the daemon's back.
+    sudo sed -E -i '' '/^kern\.(maxvnodes|maxfiles|maxfilesperproc)=/d' /etc/sysctl.conf
     while IFS= read -r kv; do
-        pat="$(printf '%s' "${kv%%=*}" | sed 's/[.]/\\./g')"
-        sudo sed -i '' "/^${pat}=/d" /etc/sysctl.conf
-        printf '%s\n' "$kv" | sudo tee -a /etc/sysctl.conf >/dev/null
+        [ -n "$kv" ] && printf '%s\n' "$kv" | sudo tee -a /etc/sysctl.conf >/dev/null
     done <<< "$pairs"
 
     # launchd's rlimit is global state, not a sysctl, so apply it here as well as in the daemon.
@@ -352,7 +354,7 @@ audit-kernel-limits:
     set -uo pipefail
     PLIST="{{justfile_directory()}}/dotfiles/launchd/org.infra.kernel-limits.plist"
     pairs="$(python3 -c 'import plistlib,re,sys;d=plistlib.load(open(sys.argv[1],"rb"));print("\n".join(re.findall(r"kern\.[a-z]+=[0-9]+", " ".join(d["ProgramArguments"]))))' "$PLIST")"
-    launchd_want="$(python3 -c 'import plistlib,re,sys;d=plistlib.load(open(sys.argv[1],"rb"));m=re.findall(r"launchctl limit maxfiles ([0-9]+) ([0-9]+)", " ".join(d["ProgramArguments"]));print(" ".join(m[-1]) if m else "")' "$PLIST")"
+    launchd_want="$(python3 -c 'import plistlib,re,sys;d=plistlib.load(open(sys.argv[1],"rb"));m=re.findall(r"launchctl limit maxfiles ([0-9]+) (unlimited|[0-9]+)", " ".join(d["ProgramArguments"]));print(" ".join(m[-1]) if m else "")' "$PLIST")"
     rc=0
     while IFS= read -r kv; do
         key="${kv%%=*}"; want="${kv#*=}"; got="$(sysctl -n "$key")"
@@ -360,7 +362,12 @@ audit-kernel-limits:
         else echo "STALE $key=$got (want $want) — run: just prep-kernel-limits"; rc=1; fi
     done <<< "$pairs"
     conf_count="$(grep -cE '^kern\.(maxvnodes|maxfiles|maxfilesperproc)=' /etc/sysctl.conf 2>/dev/null)" || conf_count=0
-    echo "sysctl.conf: ${conf_count:-0}/3 pairs"
+    want_count="$(printf '%s\n' "$pairs" | grep -c .)" || want_count=0
+    if [ "${conf_count:-0}" -eq "${want_count:-0}" ]; then
+        echo "sysctl.conf: ${conf_count:-0}/${want_count:-0} pairs"
+    else
+        echo "sysctl.conf: ${conf_count:-0}/${want_count:-0} pairs (stale extra keys) — run: just prep-kernel-limits"; rc=1
+    fi
     echo "daemon: $(sudo -n launchctl print system/org.infra.kernel-limits 2>/dev/null | grep -c 'state = ' || true) (1 = loaded; use sudo for a real answer)"
     got_soft="$(launchctl limit maxfiles 2>/dev/null | awk '{print $2}')"
     want_soft="${launchd_want%% *}"

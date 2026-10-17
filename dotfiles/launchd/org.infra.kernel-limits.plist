@@ -13,9 +13,17 @@
 
   Second ceiling, different errno: launchd's per-process fd default ships as `maxfiles 256
   unlimited`, which every launchd-spawned agent inherits and dies on at 256 fds (EMFILE, errno 24 -
-  not the ENFILE above). Raising it directly trips SIP with EPERM, so the low value is set first and
-  the target second. Both ceilings live in this one ProgramArguments, so this file stays the single
+  not the ENFILE above). The hard limit is left at `unlimited` because SIP rejects lowering it to a
+  finite value with "Could not set resource limits: 150: Operation not permitted while System
+  Integrity Protection is engaged"; only the soft limit (what processes actually inherit) matters.
+  Both ceilings live in this one ProgramArguments, so this file stays the single
   source of truth for `just prep-kernel-limits` and `just audit-kernel-limits`.
+
+  Deliberately NOT managed: kern.maxfiles. macOS rests it at INT_MAX (2147483647) or thereabouts, so
+  any explicit value here can only *lower* the ceiling - and the file table was never the binding
+  constraint anyway (peak observed during a 1,215-event vnode storm: 8,385 of 368,640). The vnode
+  pool above is what actually fills, so maxfiles is left to the kernel. If a future workload ever
+  makes the file table the constraint, manage it here *and* check the resting default first.
 -->
 <plist version="1.0">
 <dict>
@@ -25,7 +33,7 @@
 	<array>
 		<string>/bin/sh</string>
 		<string>-c</string>
-		<string>/usr/sbin/sysctl -w kern.maxvnodes=524288 kern.maxfiles=1048576 kern.maxfilesperproc=262144; /bin/launchctl limit maxfiles 256 unlimited; /bin/launchctl limit maxfiles 65536 200000</string>
+		<string>/usr/sbin/sysctl -w kern.maxvnodes=524288 kern.maxfilesperproc=262144; /bin/launchctl limit maxfiles 256 unlimited; /bin/launchctl limit maxfiles 65536 unlimited</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>
