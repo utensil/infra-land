@@ -294,7 +294,11 @@ prep-kernel-limits:
     DEST=/Library/LaunchDaemons/org.infra.kernel-limits.plist
     LABEL=org.infra.kernel-limits
 
-    pairs="$(python3 -c 'import plistlib,sys;print("\n".join(a for a in plistlib.load(open(sys.argv[1],"rb"))["ProgramArguments"] if "=" in a))' "$PLIST")"
+    # AGENT-NOTE: values are scraped from the daemon's own ProgramArguments, which is now a single
+    # /bin/sh -c string covering both ceilings (sysctls + launchd's maxfiles rlimit), so the plist
+    # stays the only place to edit them.
+    pairs="$(python3 -c 'import plistlib,re,sys;d=plistlib.load(open(sys.argv[1],"rb"));print("\n".join(re.findall(r"kern\.[a-z]+=[0-9]+", " ".join(d["ProgramArguments"]))))' "$PLIST")"
+    launchd_want="$(python3 -c 'import plistlib,re,sys;d=plistlib.load(open(sys.argv[1],"rb"));m=re.findall(r"launchctl limit maxfiles ([0-9]+) ([0-9]+)", " ".join(d["ProgramArguments"]));print(" ".join(m[-1]) if m else "")' "$PLIST")"
 
     verify() {
         local rc=0 kv key want got
@@ -304,6 +308,16 @@ prep-kernel-limits:
             else printf 'FAIL %s=%s (want %s)\n' "$key" "$got" "$want"; rc=1; fi
         done <<< "$pairs"
         return "$rc"
+    }
+
+    verify_launchd() {
+        local got
+        got="$(launchctl limit maxfiles 2>/dev/null | awk '{print $2}')"
+        if [ -n "$launchd_want" ] && [ "$got" = "${launchd_want%% *}" ]; then
+            printf 'ok   launchd maxfiles soft=%s\n' "$got"
+        else
+            printf 'FAIL launchd maxfiles soft=%s (want %s)\n' "${got:-?}" "${launchd_want:-?}"; return 1
+        fi
     }
 
     sudo install -o root -g wheel -m 0644 "$PLIST" "$DEST"
@@ -316,11 +330,19 @@ prep-kernel-limits:
         printf '%s\n' "$kv" | sudo tee -a /etc/sysctl.conf >/dev/null
     done <<< "$pairs"
 
+    # launchd's rlimit is global state, not a sysctl, so apply it here as well as in the daemon.
+    if [ -n "$launchd_want" ]; then
+        sudo launchctl limit maxfiles 256 unlimited 2>/dev/null || true   # SIP wants the low value first
+        sudo launchctl limit maxfiles ${launchd_want%% *} ${launchd_want##* } 2>/dev/null \
+            || echo "warn: launchd maxfiles raise refused now (SIP?); the daemon retries at boot"
+    fi
+
     sudo launchctl bootout system/$LABEL 2>/dev/null || true
     sudo launchctl bootstrap system "$DEST"
     # RunAtLoad already fired; kickstart only if the live values still disagree.
-    if ! verify >/dev/null; then sudo launchctl kickstart -k system/$LABEL && sleep 1; fi
+    if ! verify >/dev/null || ! verify_launchd >/dev/null; then sudo launchctl kickstart -k system/$LABEL && sleep 1; fi
     verify
+    verify_launchd
     sudo launchctl print system/$LABEL 2>/dev/null | grep -E 'state = |last exit code = ' || true
     echo "persisted: $DEST + /etc/sysctl.conf"
 
@@ -329,7 +351,8 @@ audit-kernel-limits:
     #!/usr/bin/env bash
     set -uo pipefail
     PLIST="{{justfile_directory()}}/dotfiles/launchd/org.infra.kernel-limits.plist"
-    pairs="$(python3 -c 'import plistlib,sys;print("\n".join(a for a in plistlib.load(open(sys.argv[1],"rb"))["ProgramArguments"] if "=" in a))' "$PLIST")"
+    pairs="$(python3 -c 'import plistlib,re,sys;d=plistlib.load(open(sys.argv[1],"rb"));print("\n".join(re.findall(r"kern\.[a-z]+=[0-9]+", " ".join(d["ProgramArguments"]))))' "$PLIST")"
+    launchd_want="$(python3 -c 'import plistlib,re,sys;d=plistlib.load(open(sys.argv[1],"rb"));m=re.findall(r"launchctl limit maxfiles ([0-9]+) ([0-9]+)", " ".join(d["ProgramArguments"]));print(" ".join(m[-1]) if m else "")' "$PLIST")"
     rc=0
     while IFS= read -r kv; do
         key="${kv%%=*}"; want="${kv#*=}"; got="$(sysctl -n "$key")"
@@ -339,5 +362,12 @@ audit-kernel-limits:
     conf_count="$(grep -cE '^kern\.(maxvnodes|maxfiles|maxfilesperproc)=' /etc/sysctl.conf 2>/dev/null)" || conf_count=0
     echo "sysctl.conf: ${conf_count:-0}/3 pairs"
     echo "daemon: $(sudo -n launchctl print system/org.infra.kernel-limits 2>/dev/null | grep -c 'state = ' || true) (1 = loaded; use sudo for a real answer)"
+    got_soft="$(launchctl limit maxfiles 2>/dev/null | awk '{print $2}')"
+    want_soft="${launchd_want%% *}"
+    if [ -n "$want_soft" ] && [ "$got_soft" = "$want_soft" ]; then
+        echo "ok   launchd maxfiles soft=$got_soft"
+    else
+        echo "STALE launchd maxfiles soft=${got_soft:-?} (want ${want_soft:-?}) — run: just prep-kernel-limits"; rc=1
+    fi
     echo "pool: free=$(sysctl -n vfs.vnstats.num_free_vnodes) desired=$(sysctl -n vfs.vnstats.desired_vnodes)"
     exit "$rc"

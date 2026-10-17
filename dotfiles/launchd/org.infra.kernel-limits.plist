@@ -10,6 +10,12 @@
   .olean, .olean.private, .olean.server, .ir, .ir.sig) and the `lake` parent maps the same closure
   again, so one `lake env lean <driver>` holds ~20-40k of the pool for its lifetime; when the pool
   empties XNU returns ENFILE system-wide (every process, pi/mise/shell included).
+
+  Second ceiling, different errno: launchd's per-process fd default ships as `maxfiles 256
+  unlimited`, which every launchd-spawned agent inherits and dies on at 256 fds (EMFILE, errno 24 -
+  not the ENFILE above). Raising it directly trips SIP with EPERM, so the low value is set first and
+  the target second. Both ceilings live in this one ProgramArguments, so this file stays the single
+  source of truth for `just prep-kernel-limits` and `just audit-kernel-limits`.
 -->
 <plist version="1.0">
 <dict>
@@ -17,11 +23,9 @@
 	<string>org.infra.kernel-limits</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>/usr/sbin/sysctl</string>
-		<string>-w</string>
-		<string>kern.maxvnodes=524288</string>
-		<string>kern.maxfiles=1048576</string>
-		<string>kern.maxfilesperproc=262144</string>
+		<string>/bin/sh</string>
+		<string>-c</string>
+		<string>/usr/sbin/sysctl -w kern.maxvnodes=524288 kern.maxfiles=1048576 kern.maxfilesperproc=262144; /bin/launchctl limit maxfiles 256 unlimited; /bin/launchctl limit maxfiles 65536 200000</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>
