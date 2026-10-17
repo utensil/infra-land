@@ -13,9 +13,12 @@
 
   Second ceiling, different errno: launchd's per-process fd default ships as `maxfiles 256
   unlimited`, which every launchd-spawned agent inherits and dies on at 256 fds (EMFILE, errno 24 -
-  not the ENFILE above). The hard limit is left at `unlimited` because SIP rejects lowering it to a
-  finite value with "Could not set resource limits: 150: Operation not permitted while System
-  Integrity Protection is engaged"; only the soft limit (what processes actually inherit) matters.
+  not the ENFILE above). The hard limit is left at `unlimited` because SIP rejects changing it at
+  all: per `man launchctl` there is no soft-only form (3 args sets both), so every attempt touches the
+  hard limit and always fails with "150 Operation not permitted while System Integrity Protection is
+  engaged". The soft limit is applied before that failure, and the soft limit is what processes
+  inherit, so stderr on these two calls is discarded to keep the log readable - `just
+  audit-kernel-limits` verifies the resulting soft limit, which is the real check.
   Both ceilings live in this one ProgramArguments, so this file stays the single
   source of truth for `just prep-kernel-limits` and `just audit-kernel-limits`.
 
@@ -33,7 +36,7 @@
 	<array>
 		<string>/bin/sh</string>
 		<string>-c</string>
-		<string>/usr/sbin/sysctl -w kern.maxvnodes=524288 kern.maxfilesperproc=262144; /bin/launchctl limit maxfiles 256 unlimited; /bin/launchctl limit maxfiles 65536 unlimited</string>
+		<string>/usr/sbin/sysctl -w kern.maxvnodes=524288 kern.maxfilesperproc=262144; /bin/launchctl limit maxfiles 256 unlimited 2>/dev/null; /bin/launchctl limit maxfiles 65536 unlimited 2>/dev/null</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>
